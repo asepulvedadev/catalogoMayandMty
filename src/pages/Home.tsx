@@ -32,7 +32,6 @@ const Home = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(0);
@@ -113,7 +112,7 @@ const Home = () => {
   };
 
   const openModal = (product: Product) => {
-    setSelectedProduct(product);
+    // Modal functionality will be implemented later
   };
 
   if (loading) {
