@@ -1,9 +1,30 @@
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/webp'];
+
+export const validateImage = (file: File): string | null => {
+  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+    return 'Solo se permiten archivos JPG y WebP';
+  }
+  
+  if (file.size > MAX_FILE_SIZE) {
+    return 'El tamaño máximo permitido es 5MB';
+  }
+
+  return null;
+};
+
 export const uploadImage = async (file: File): Promise<string | null> => {
   try {
-    const fileExt = file.name.split('.').pop();
+    const validationError = validateImage(file);
+    if (validationError) {
+      alert(validationError);
+      return null;
+    }
+
+    const fileExt = file.type === 'image/jpeg' ? 'jpg' : 'webp';
     const fileName = `${uuidv4()}.${fileExt}`;
     const filePath = `product-images/${fileName}`;
 
@@ -12,8 +33,8 @@ export const uploadImage = async (file: File): Promise<string | null> => {
     if (!buckets?.find(bucket => bucket.name === 'products')) {
       const { error: createError } = await supabase.storage.createBucket('products', {
         public: true,
-        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-        fileSizeLimit: 5242880 // 5MB
+        allowedMimeTypes: ALLOWED_MIME_TYPES,
+        fileSizeLimit: MAX_FILE_SIZE
       });
       if (createError) throw createError;
     }
