@@ -56,7 +56,7 @@ const Home = () => {
               <img
                 src={logo}
                 alt="Mayand Logo"
-                className="absolute top-2 left-2 h-8 w-auto z-10 opacity-40"
+                className="absolute top-2 left-2 h-8 w-auto z-10 opacity-60"
               />
               <button 
                 onClick={() => openModal(product)}
