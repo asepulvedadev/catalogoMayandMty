@@ -30,6 +30,10 @@ const Header = ({ searchTerm = '', onSearch, currentPage = 0, totalPages = 0, on
     }
   };
 
+  const toggleSearch = () => {
+    setIsSearchVisible(!isSearchVisible);
+  };
+
   return (
     <header className="bg-primary text-white w-full sticky top-0 z-50">
       <div className="w-4/5 mx-auto">
@@ -64,23 +68,21 @@ const Header = ({ searchTerm = '', onSearch, currentPage = 0, totalPages = 0, on
                 <div className="relative">
                   <button
                     className="p-2 hover:bg-primary-700 rounded-full"
-                    onMouseEnter={() => setIsSearchVisible(true)}
+                    onClick={toggleSearch}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </button>
                   {isSearchVisible && (
-                    <div
-                      className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg"
-                      onMouseLeave={() => setIsSearchVisible(false)}
-                    >
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg p-2">
                       <input
                         type="text"
                         value={searchTerm}
                         onChange={(e) => onSearch?.(e.target.value)}
                         placeholder="Buscar productos..."
                         className="w-full p-2 text-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                        autoFocus
                       />
                     </div>
                   )}
@@ -93,11 +95,6 @@ const Header = ({ searchTerm = '', onSearch, currentPage = 0, totalPages = 0, on
                   </svg>
                 </button>
               )}
-              <button className="p-2 hover:bg-primary-700 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </button>
             </div>
           </div>
 
