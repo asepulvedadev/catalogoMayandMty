@@ -36,6 +36,56 @@ const Home = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
 
+  useEffect(() => {
+    loadProducts();
+  }, [selectedCategory, searchTerm, currentPage]);
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+
+      // Primero, obtener el total de productos para la paginación
+      let countQuery = supabase
+        .from('products')
+        .select('id', { count: 'exact' });
+
+      if (selectedCategory !== 'all') {
+        countQuery = countQuery.eq('category', selectedCategory);
+      }
+
+      if (searchTerm) {
+        countQuery = countQuery.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,keywords.cs.{${searchTerm}}`);
+      }
+
+      const { count } = await countQuery;
+      setTotalProducts(count || 0);
+
+      // Luego, obtener los productos para la página actual
+      let query = supabase
+        .from('products')
+        .select('*')
+        .range(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE - 1)
+        .order('created_at', { ascending: false });
+
+      if (selectedCategory !== 'all') {
+        query = query.eq('category', selectedCategory);
+      }
+
+      if (searchTerm) {
+        query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,keywords.cs.{${searchTerm}}`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error loading products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Calculate total pages based on total products and items per page
   const totalPages = Math.ceil(totalProducts / ITEMS_PER_PAGE);
 
@@ -50,6 +100,14 @@ const Home = () => {
   const openModal = (product: Product) => {
     setSelectedProduct(product);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center min-h-screen bg-gray-50">
@@ -136,6 +194,14 @@ const Home = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                   </button>
+                </div>
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
+                  <p className="text-gray-600 text-sm mb-2 line-clamp-2">{product.description}</p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Precio: ${product.unit_price}</span>
+                    <span className="text-gray-500">{product.width}x{product.height}cm</span>
+                  </div>
                 </div>
               </div>
             ))}
