@@ -9,7 +9,7 @@ const Header = () => {
       <div className="w-4/5 mx-auto">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <img src={logo} alt="Mayand Logo" className="w-16 h-auto" />
+            <img src={logo} alt="Mayand Logo" className="w-20 h-auto" />
           </div>
           
           <div className="hidden md:flex md:items-center md:justify-between md:w-full md:ml-8">
