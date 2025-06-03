@@ -9,6 +9,13 @@ export default {
       colors: {
         primary: '#110363',
       },
+      screens: {
+        'sm': '640px',    // Móvil grande
+        'md': '768px',    // Tablet
+        'lg': '1024px',   // Desktop
+        'xl': '1280px',   // Desktop grande
+        '2xl': '1536px',  // Desktop extra grande
+      },
     },
   },
   plugins: [],
