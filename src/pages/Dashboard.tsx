@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { uploadImage } from '../utils/imageUpload';
+import { uploadImage, deleteImage } from '../utils/imageUpload';
 import type { Product, ProductFormState, Material, ProductCategory } from '../types/product';
 
 const Dashboard = () => {
@@ -83,19 +83,44 @@ const Dashboard = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (currentProduct.images.length >= 4) {
+      alert('Maximum 4 images allowed per product');
+      return;
+    }
+
     try {
       setUploadingImage(true);
       const imageUrl = await uploadImage(file);
       if (imageUrl) {
         setCurrentProduct(prev => ({
           ...prev,
-          image_url: imageUrl,
-          images: [...(prev.images || []), imageUrl]
+          images: [...prev.images, imageUrl],
+          image_url: prev.image_url || imageUrl // Set as main image if none exists
         }));
       }
     } finally {
       setUploadingImage(false);
     }
+  };
+
+  const handleImageDelete = async (imageUrl: string) => {
+    if (await deleteImage(imageUrl)) {
+      setCurrentProduct(prev => {
+        const newImages = prev.images.filter(img => img !== imageUrl);
+        return {
+          ...prev,
+          images: newImages,
+          image_url: imageUrl === prev.image_url ? newImages[0] || null : prev.image_url
+        };
+      });
+    }
+  };
+
+  const handleSetMainImage = (imageUrl: string) => {
+    setCurrentProduct(prev => ({
+      ...prev,
+      image_url: imageUrl
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,12 +188,7 @@ const Dashboard = () => {
     const product = products.find(p => p.id === id);
     if (product?.images?.length) {
       for (const imageUrl of product.images) {
-        const imagePath = imageUrl.split('/').pop();
-        if (imagePath) {
-          await supabase.storage
-            .from('products')
-            .remove([`product-images/${imagePath}`]);
-        }
+        await deleteImage(imageUrl);
       }
     }
 
@@ -334,27 +354,54 @@ const Dashboard = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Image</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Images ({currentProduct.images.length}/4)
+                </label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={handleImageUpload}
                   className="mt-1 block w-full"
+                  disabled={currentProduct.images.length >= 4 || uploadingImage}
                 />
                 {uploadingImage && (
                   <div className="mt-2 text-sm text-gray-500">
                     Uploading image...
                   </div>
                 )}
-                {currentProduct.image_url && (
-                  <div className="mt-2">
-                    <img
-                      src={currentProduct.image_url}
-                      alt="Preview"
-                      className="h-32 w-32 object-cover rounded"
-                    />
-                  </div>
-                )}
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {currentProduct.images.map((imageUrl, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={imageUrl}
+                        alt={`Product image ${index + 1}`}
+                        className={`h-32 w-full object-cover rounded ${imageUrl === currentProduct.image_url ? 'ring-2 ring-primary' : ''}`}
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded flex items-center justify-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleSetMainImage(imageUrl)}
+                          className="bg-blue-500 text-white p-1 rounded hover:bg-blue-600"
+                          title="Set as main image"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleImageDelete(imageUrl)}
+                          className="bg-red-500 text-white p-1 rounded hover:bg-red-600"
+                          title="Delete image"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               <div className="flex justify-end space-x-3">
@@ -397,7 +444,7 @@ const Dashboard = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Images</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Material</th>
@@ -410,13 +457,16 @@ const Dashboard = () => {
                 {products.map((product) => (
                   <tr key={product.id}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {product.image_url && (
-                        <img
-                          src={product.image_url}
-                          alt={product.name}
-                          className="h-20 w-20 object-cover rounded"
-                        />
-                      )}
+                      <div className="flex space-x-2">
+                        {product.images.map((imageUrl, index) => (
+                          <img
+                            key={index}
+                            src={imageUrl}
+                            alt={`${product.name} ${index + 1}`}
+                            className={`h-20 w-20 object-cover rounded ${imageUrl === product.image_url ? 'ring-2 ring-primary' : ''}`}
+                          />
+                        ))}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{product.name}</div>
