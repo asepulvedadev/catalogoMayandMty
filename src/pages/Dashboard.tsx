@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Product, ProductFormState, Material } from '../types/product';
+import type { Product, ProductFormState, Material, ProductCategory } from '../types/product';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -17,9 +17,32 @@ const Dashboard = () => {
     unit_price: 0,
     bulk_price: 0,
     image_url: null,
+    category: 'office_supplies',
+    keywords: [],
   });
 
   const materials: Material[] = ['mdf', 'acrilico', 'pvc', 'coroplax', 'acetato', 'carton', 'tela'];
+  
+  const categories: { value: ProductCategory; label: string }[] = [
+    { value: 'office_supplies', label: 'Art. de oficina/Papelería' },
+    { value: 'kitchen_items', label: 'Artículos cocina' },
+    { value: 'living_hinges', label: 'Bisagras vivas/Mecanismos' },
+    { value: 'houses_furniture', label: 'Casas/Muebles' },
+    { value: 'displays', label: 'Exhibidores' },
+    { value: 'geometric_shapes', label: 'Figuras geométricas' },
+    { value: 'lamps_clocks', label: 'Lámparas y Relojes' },
+    { value: 'letters_numbers', label: 'Letras/Números' },
+    { value: 'mandalas_dreamcatchers', label: 'Mandalas y Atrapa sueños' },
+    { value: 'maps', label: 'Mapas' },
+    { value: 'masks', label: 'Mascarillas y cubrebocas' },
+    { value: 'nature', label: 'Naturaleza' },
+    { value: 'christmas', label: 'Navidad' },
+    { value: 'easter', label: 'Pascua' },
+    { value: 'frames', label: 'Portarretratos/Marcos' },
+    { value: 'shelves', label: 'Repisas/Estantes' },
+    { value: 'puzzles', label: 'Rompecabezas' },
+    { value: 'transportation', label: 'Transportes' },
+  ];
 
   useEffect(() => {
     checkUser();
@@ -89,6 +112,8 @@ const Dashboard = () => {
       unit_price: 0,
       bulk_price: 0,
       image_url: null,
+      category: 'office_supplies',
+      keywords: [],
     });
     loadProducts();
   };
@@ -105,6 +130,8 @@ const Dashboard = () => {
       unit_price: product.unit_price,
       bulk_price: product.bulk_price,
       image_url: product.image_url,
+      category: product.category,
+      keywords: product.keywords,
     });
   };
 
@@ -120,6 +147,11 @@ const Dashboard = () => {
     }
 
     loadProducts();
+  };
+
+  const handleKeywordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k !== '');
+    setCurrentProduct({ ...currentProduct, keywords });
   };
 
   const handleSignOut = async () => {
@@ -166,6 +198,33 @@ const Dashboard = () => {
                 <textarea
                   value={currentProduct.description || ''}
                   onChange={(e) => setCurrentProduct({ ...currentProduct, description: e.target.value || null })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Category</label>
+                <select
+                  value={currentProduct.category}
+                  onChange={(e) => setCurrentProduct({ ...currentProduct, category: e.target.value as ProductCategory })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                  required
+                >
+                  {categories.map(({ value, label }) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Keywords</label>
+                <input
+                  type="text"
+                  value={currentProduct.keywords.join(', ')}
+                  onChange={handleKeywordsChange}
+                  placeholder="Enter keywords separated by commas"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                 />
               </div>
@@ -263,6 +322,8 @@ const Dashboard = () => {
                         unit_price: 0,
                         bulk_price: 0,
                         image_url: null,
+                        category: 'office_supplies',
+                        keywords: [],
                       });
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -286,6 +347,7 @@ const Dashboard = () => {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Material</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dimensions</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prices</th>
@@ -307,6 +369,12 @@ const Dashboard = () => {
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">{product.name}</div>
                       <div className="text-sm text-gray-500">{product.description}</div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Keywords: {product.keywords.join(', ')}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {categories.find(c => c.value === product.category)?.label}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {product.material.toUpperCase()}

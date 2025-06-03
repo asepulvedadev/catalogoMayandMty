@@ -1,23 +1,57 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import type { Product } from '../types/product';
+import type { Product, ProductCategory } from '../types/product';
 import logo from '../assets/logo_mayand.png';
 
 const Home = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const categories: { value: ProductCategory | 'all'; label: string }[] = [
+    { value: 'all', label: 'Todas las categorías' },
+    { value: 'office_supplies', label: 'Art. de oficina/Papelería' },
+    { value: 'kitchen_items', label: 'Artículos cocina' },
+    { value: 'living_hinges', label: 'Bisagras vivas/Mecanismos' },
+    { value: 'houses_furniture', label: 'Casas/Muebles' },
+    { value: 'displays', label: 'Exhibidores' },
+    { value: 'geometric_shapes', label: 'Figuras geométricas' },
+    { value: 'lamps_clocks', label: 'Lámparas y Relojes' },
+    { value: 'letters_numbers', label: 'Letras/Números' },
+    { value: 'mandalas_dreamcatchers', label: 'Mandalas y Atrapa sueños' },
+    { value: 'maps', label: 'Mapas' },
+    { value: 'masks', label: 'Mascarillas y cubrebocas' },
+    { value: 'nature', label: 'Naturaleza' },
+    { value: 'christmas', label: 'Navidad' },
+    { value: 'easter', label: 'Pascua' },
+    { value: 'frames', label: 'Portarretratos/Marcos' },
+    { value: 'shelves', label: 'Repisas/Estantes' },
+    { value: 'puzzles', label: 'Rompecabezas' },
+    { value: 'transportation', label: 'Transportes' },
+  ];
 
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [selectedCategory, searchTerm]);
 
   const loadProducts = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (selectedCategory !== 'all') {
+        query = query.eq('category', selectedCategory);
+      }
+
+      if (searchTerm) {
+        query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,keywords.cs.{${searchTerm}}`);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setProducts(data || []);
@@ -42,6 +76,27 @@ const Home = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <div className="flex flex-col md:flex-row gap-4">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value as ProductCategory | 'all')}
+            className="p-2 border rounded-md"
+          >
+            {categories.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            placeholder="Buscar productos..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="p-2 border rounded-md flex-grow"
+          />
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {products.map((product) => (
           <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
@@ -136,6 +191,12 @@ const Home = () => {
                       <span className="text-gray-500">Dimensiones:</span>
                       <span className="font-medium">{selectedProduct.width} x {selectedProduct.height} cm</span>
                     </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Categoría:</span>
+                      <span className="font-medium">
+                        {categories.find(c => c.value === selectedProduct.category)?.label}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -150,6 +211,16 @@ const Home = () => {
                       <span className="font-medium">${selectedProduct.bulk_price}</span>
                     </div>
                   </div>
+                </div>
+              </div>
+              <div className="mt-4">
+                <h3 className="font-semibold text-gray-900 mb-2">Palabras clave</h3>
+                <div className="flex flex-wrap gap-2">
+                  {selectedProduct.keywords.map((keyword, index) => (
+                    <span key={index} className="bg-gray-100 px-2 py-1 rounded-full text-sm text-gray-600">
+                      {keyword}
+                    </span>
+                  ))}
                 </div>
               </div>
               <div className="mt-6 flex justify-end">
