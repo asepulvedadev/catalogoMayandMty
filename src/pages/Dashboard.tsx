@@ -1,10 +1,14 @@
-{Previous content of Dashboard.tsx with the following key improvements:
+import React from 'react';
 
-1. Better mobile/tablet layout
-2. Improved form responsiveness
-3. Enhanced table view for mobile
-4. Better spacing and typography
-5. Improved image gallery
-6. Better loading states
-7. Enhanced buttons and inputs
-8. Better error handling}
+function Dashboard() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <div className="bg-white rounded-lg shadow p-6">
+        <p>Welcome to your dashboard!</p>
+      </div>
+    </div>
+  );
+}
+
+export default Dashboard;
