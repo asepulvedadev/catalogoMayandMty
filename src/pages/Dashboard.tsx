@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { uploadImage } from '../utils/imageUpload';
 import type { Product, ProductFormState, Material, ProductCategory } from '../types/product';
 
 const Dashboard = () => {
@@ -8,6 +9,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<ProductFormState>({
     name: '',
     description: null,
@@ -76,6 +78,21 @@ const Dashboard = () => {
     setProducts(data || []);
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingImage(true);
+      const imageUrl = await uploadImage(file);
+      if (imageUrl) {
+        setCurrentProduct({ ...currentProduct, image_url: imageUrl });
+      }
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -136,6 +153,17 @@ const Dashboard = () => {
   };
 
   const handleDelete = async (id: string) => {
+    // Si hay una imagen, primero la eliminamos del storage
+    const product = products.find(p => p.id === id);
+    if (product?.image_url) {
+      const imagePath = product.image_url.split('/').pop();
+      if (imagePath) {
+        await supabase.storage
+          .from('products')
+          .remove([`product-images/${imagePath}`]);
+      }
+    }
+
     const { error } = await supabase
       .from('products')
       .delete()
@@ -298,13 +326,27 @@ const Dashboard = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Image URL</label>
+                <label className="block text-sm font-medium text-gray-700">Image</label>
                 <input
-                  type="url"
-                  value={currentProduct.image_url || ''}
-                  onChange={(e) => setCurrentProduct({ ...currentProduct, image_url: e.target.value || null })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="mt-1 block w-full"
                 />
+                {uploadingImage && (
+                  <div className="mt-2 text-sm text-gray-500">
+                    Uploading image...
+                  </div>
+                )}
+                {currentProduct.image_url && (
+                  <div className="mt-2">
+                    <img
+                      src={currentProduct.image_url}
+                      alt="Preview"
+                      className="h-32 w-32 object-cover rounded"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3">
@@ -333,7 +375,8 @@ const Dashboard = () => {
                 )}
                 <button
                   type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-700"
+                  disabled={uploadingImage}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-700 disabled:opacity-50"
                 >
                   {isEditing ? 'Update Product' : 'Add Product'}
                 </button>
