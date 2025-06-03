@@ -116,13 +116,6 @@ const Dashboard = () => {
     }
   };
 
-  const handleSetMainImage = (imageUrl: string) => {
-    setCurrentProduct(prev => ({
-      ...prev,
-      image_url: imageUrl
-    }));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -376,6 +369,7 @@ const Dashboard = () => {
                         src={imageUrl}
                         alt={`Imagen del producto ${index + 1}`}
                         className={`h-32 w-full object-cover rounded ${imageUrl === currentProduct.image_url ? 'ring-2 ring-primary' : ''}`}
+                        onClick={() => setCurrentProduct(prev => ({ ...prev, image_url: imageUrl }))}
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded flex items-center justify-center">
                         <button
