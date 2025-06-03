@@ -24,7 +24,7 @@ export interface Product {
   id: string;
   name: string;
   description: string | null;
-  material: Material;
+  material: string; // Changed from Material to string
   width: number;
   height: number;
   unit_price: number;
@@ -32,7 +32,7 @@ export interface Product {
   image_url: string | null;
   created_at: string;
   updated_at: string;
-  category: ProductCategory;
+  category: string; // Changed from ProductCategory to string
   keywords: string[];
 }
 
@@ -40,12 +40,12 @@ export interface ProductFormState {
   id?: string;
   name: string;
   description: string | null;
-  material: Material;
+  material: string; // Changed from Material to string
   width: number;
   height: number;
   unit_price: number;
   bulk_price: number;
   image_url: string | null;
-  category: ProductCategory;
+  category: string; // Changed from ProductCategory to string
   keywords: string[];
 }
