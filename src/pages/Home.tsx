@@ -46,10 +46,8 @@ const Home = () => {
       setLoading(true);
       setError(null);
 
-      // Log Supabase connection details (without sensitive data)
       console.log('Attempting to connect to Supabase...');
       
-      // Primero, obtener el total de productos para la paginación
       let countQuery = supabase
         .from('products')
         .select('id', { count: 'exact' });
@@ -71,7 +69,6 @@ const Home = () => {
 
       setTotalProducts(count || 0);
 
-      // Luego, obtener los productos para la página actual
       let query = supabase
         .from('products')
         .select('*')
@@ -108,7 +105,6 @@ const Home = () => {
     }
   };
 
-  // Calculate total pages based on total products and items per page
   const totalPages = Math.ceil(totalProducts / ITEMS_PER_PAGE);
 
   const prevPage = () => {
@@ -144,7 +140,7 @@ const Home = () => {
 
   return (
     <div className="flex justify-center min-h-screen bg-gray-50">
-      <div className="w-[60%] px-4 py-8">
+      <div className="w-full md:w-[80%] lg:w-[90%] xl:w-[80%] px-4 py-8">
         <div className="mb-8">
           <div className="flex flex-col md:flex-row gap-4">
             <select
@@ -176,7 +172,7 @@ const Home = () => {
           {currentPage > 0 && (
             <button
               onClick={prevPage}
-              className="fixed left-[15%] top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-lg z-10 hover:bg-gray-100 transition-transform duration-300 hover:scale-110"
+              className="fixed left-4 md:left-[10%] top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-lg z-10 hover:bg-gray-100 transition-transform duration-300 hover:scale-110"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -187,7 +183,7 @@ const Home = () => {
           {currentPage < totalPages - 1 && (
             <button
               onClick={nextPage}
-              className="fixed right-[15%] top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-lg z-10 hover:bg-gray-100 transition-transform duration-300 hover:scale-110"
+              className="fixed right-4 md:right-[10%] top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-lg z-10 hover:bg-gray-100 transition-transform duration-300 hover:scale-110"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -195,7 +191,7 @@ const Home = () => {
             </button>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product) => (
               <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 transform transition-all duration-300 hover:scale-105 hover:shadow-xl">
                 <div className="relative pb-[100%] bg-gray-100">
