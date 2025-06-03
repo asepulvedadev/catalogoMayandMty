@@ -14,13 +14,14 @@ export interface Product {
   updated_at: string;
 }
 
-export interface ProductFormData {
+export interface ProductFormState {
+  id?: string;
   name: string;
-  description: string;
+  description: string | null;
   material: Material;
   width: number;
   height: number;
   unit_price: number;
   bulk_price: number;
-  image_url: string;
+  image_url: string | null;
 }

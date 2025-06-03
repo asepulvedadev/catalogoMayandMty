@@ -1,22 +1,22 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import type { Product, ProductFormData, Material } from '../types/product';
+import type { Product, ProductFormState, Material } from '../types/product';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentProduct, setCurrentProduct] = useState<ProductFormData>({
+  const [currentProduct, setCurrentProduct] = useState<ProductFormState>({
     name: '',
-    description: '',
+    description: null,
     material: 'mdf',
     width: 0,
     height: 0,
     unit_price: 0,
     bulk_price: 0,
-    image_url: '',
+    image_url: null,
   });
 
   const materials: Material[] = ['mdf', 'acrilico', 'pvc', 'coroplax', 'acetato', 'carton', 'tela'];
@@ -56,20 +56,22 @@ const Dashboard = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isEditing) {
+    if (isEditing && currentProduct.id) {
+      const { id, ...updateData } = currentProduct;
       const { error } = await supabase
         .from('products')
-        .update(currentProduct)
-        .eq('id', currentProduct.id);
+        .update(updateData)
+        .eq('id', id);
 
       if (error) {
         console.error('Error updating product:', error);
         return;
       }
     } else {
+      const { id, ...insertData } = currentProduct;
       const { error } = await supabase
         .from('products')
-        .insert([currentProduct]);
+        .insert([insertData]);
 
       if (error) {
         console.error('Error creating product:', error);
@@ -80,20 +82,30 @@ const Dashboard = () => {
     setIsEditing(false);
     setCurrentProduct({
       name: '',
-      description: '',
+      description: null,
       material: 'mdf',
       width: 0,
       height: 0,
       unit_price: 0,
       bulk_price: 0,
-      image_url: '',
+      image_url: null,
     });
     loadProducts();
   };
 
   const handleEdit = (product: Product) => {
     setIsEditing(true);
-    setCurrentProduct(product);
+    setCurrentProduct({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      material: product.material,
+      width: product.width,
+      height: product.height,
+      unit_price: product.unit_price,
+      bulk_price: product.bulk_price,
+      image_url: product.image_url,
+    });
   };
 
   const handleDelete = async (id: string) => {
@@ -152,8 +164,8 @@ const Dashboard = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Description</label>
                 <textarea
-                  value={currentProduct.description}
-                  onChange={(e) => setCurrentProduct({ ...currentProduct, description: e.target.value })}
+                  value={currentProduct.description || ''}
+                  onChange={(e) => setCurrentProduct({ ...currentProduct, description: e.target.value || null })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                 />
               </div>
@@ -230,8 +242,8 @@ const Dashboard = () => {
                 <label className="block text-sm font-medium text-gray-700">Image URL</label>
                 <input
                   type="url"
-                  value={currentProduct.image_url}
-                  onChange={(e) => setCurrentProduct({ ...currentProduct, image_url: e.target.value })}
+                  value={currentProduct.image_url || ''}
+                  onChange={(e) => setCurrentProduct({ ...currentProduct, image_url: e.target.value || null })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                 />
               </div>
@@ -244,13 +256,13 @@ const Dashboard = () => {
                       setIsEditing(false);
                       setCurrentProduct({
                         name: '',
-                        description: '',
+                        description: null,
                         material: 'mdf',
                         width: 0,
                         height: 0,
                         unit_price: 0,
                         bulk_price: 0,
-                        image_url: '',
+                        image_url: null,
                       });
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
