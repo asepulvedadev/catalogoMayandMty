@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Product } from '../types/product';
+import logo from '../assets/logo_mayand.png';
 
 const Home = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -26,6 +28,14 @@ const Home = () => {
     }
   };
 
+  const openModal = (product: Product) => {
+    setSelectedProduct(product);
+  };
+
+  const closeModal = () => {
+    setSelectedProduct(null);
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -43,7 +53,15 @@ const Home = () => {
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               )}
-              <button className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded-full hover:bg-green-600">
+              <img
+                src={logo}
+                alt="Mayand Logo"
+                className="absolute top-2 left-2 h-8 w-auto z-10"
+              />
+              <button 
+                onClick={() => openModal(product)}
+                className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded-full hover:bg-green-600"
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -58,7 +76,7 @@ const Home = () => {
                   </svg>
                 </button>
               </div>
-              <p className="text-sm text-gray-600 mb-4">{product.description}</p>
+              <p className="text-sm text-gray-600 mb-4 line-clamp-2">{product.description}</p>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Material:</span>
@@ -81,6 +99,71 @@ const Home = () => {
           </div>
         ))}
       </div>
+
+      {/* Product Detail Modal */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="relative">
+              {selectedProduct.image_url && (
+                <img
+                  src={selectedProduct.image_url}
+                  alt={selectedProduct.name}
+                  className="w-full h-64 object-cover"
+                />
+              )}
+              <button
+                onClick={closeModal}
+                className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6">
+              <h2 className="text-2xl font-bold mb-4">{selectedProduct.name}</h2>
+              <p className="text-gray-600 mb-6">{selectedProduct.description}</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-gray-900 mb-2">Especificaciones</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Material:</span>
+                      <span className="font-medium">{selectedProduct.material.toUpperCase()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Dimensiones:</span>
+                      <span className="font-medium">{selectedProduct.width} x {selectedProduct.height} cm</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-gray-900 mb-2">Precios</h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Precio unitario:</span>
+                      <span className="font-medium">${selectedProduct.unit_price}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Precio mayoreo:</span>
+                      <span className="font-medium">${selectedProduct.bulk_price}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={closeModal}
+                  className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
