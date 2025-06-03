@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Product, ProductCategory } from '../types/product';
+import Header from '../components/Header';
 import logo from '../assets/logo_mayand.png';
 
 const ITEMS_PER_PAGE = 8;
@@ -46,8 +47,6 @@ const Home = () => {
       setLoading(true);
       setError(null);
 
-      console.log('Attempting to connect to Supabase...');
-      
       let countQuery = supabase
         .from('products')
         .select('id', { count: 'exact' });
@@ -63,7 +62,6 @@ const Home = () => {
       const { count, error: countError } = await countQuery;
       
       if (countError) {
-        console.error('Error counting products:', countError);
         throw new Error(`Failed to count products: ${countError.message}`);
       }
 
@@ -86,7 +84,6 @@ const Home = () => {
       const { data, error: fetchError } = await query;
 
       if (fetchError) {
-        console.error('Error fetching products:', fetchError);
         throw new Error(`Failed to fetch products: ${fetchError.message}`);
       }
 
@@ -94,10 +91,9 @@ const Home = () => {
         throw new Error('No data received from Supabase');
       }
 
-      console.log('Successfully fetched products:', data.length);
       setProducts(data);
     } catch (error) {
-      console.error('Detailed error:', error);
+      console.error('Error loading products:', error);
       setError(error instanceof Error ? error.message : 'An unknown error occurred');
       setProducts([]);
     } finally {
@@ -107,12 +103,13 @@ const Home = () => {
 
   const totalPages = Math.ceil(totalProducts / ITEMS_PER_PAGE);
 
-  const prevPage = () => {
-    setCurrentPage((prev) => Math.max(0, prev - 1));
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    setCurrentPage(0);
   };
 
-  const nextPage = () => {
-    setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const openModal = (product: Product) => {
@@ -121,75 +118,54 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-          <strong className="font-bold">Error: </strong>
-          <span className="block sm:inline">{error}</span>
+      <>
+        <Header />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <strong className="font-bold">Error: </strong>
+            <span className="block sm:inline">{error}</span>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="flex justify-center min-h-screen bg-gray-50">
-      <div className="w-full md:w-[80%] lg:w-[90%] xl:w-[80%] px-4 py-8">
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
+    <>
+      <Header
+        searchTerm={searchTerm}
+        onSearch={handleSearch}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
+      <div className="flex justify-center min-h-screen bg-gray-50">
+        <div className="w-full md:w-[80%] lg:w-[90%] xl:w-[80%] px-4 py-8">
+          <div className="mb-8">
             <select
               value={selectedCategory}
               onChange={(e) => {
                 setSelectedCategory(e.target.value as ProductCategory | 'all');
                 setCurrentPage(0);
               }}
-              className="p-2 border rounded-md"
+              className="p-2 border rounded-md w-full md:w-auto"
             >
               {categories.map(({ value, label }) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
-            <input
-              type="text"
-              placeholder="Buscar productos..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(0);
-              }}
-              className="p-2 border rounded-md flex-grow"
-            />
           </div>
-        </div>
-
-        <div className="relative">
-          {currentPage > 0 && (
-            <button
-              onClick={prevPage}
-              className="fixed left-4 md:left-[10%] top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-lg z-10 hover:bg-gray-100 transition-transform duration-300 hover:scale-110"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
-
-          {currentPage < totalPages - 1 && (
-            <button
-              onClick={nextPage}
-              className="fixed right-4 md:right-[10%] top-1/2 -translate-y-1/2 bg-white p-3 rounded-full shadow-lg z-10 hover:bg-gray-100 transition-transform duration-300 hover:scale-110"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {products.map((product) => (
@@ -235,15 +211,9 @@ const Home = () => {
               </div>
             ))}
           </div>
-
-          <div className="mt-8 flex justify-center items-center gap-4">
-            <span className="text-gray-600">
-              Página {currentPage + 1} de {totalPages}
-            </span>
-          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
