@@ -30,6 +30,7 @@ const categories = [
 const Home = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,7 +44,11 @@ const Home = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
+      setError(null);
 
+      // Log Supabase connection details (without sensitive data)
+      console.log('Attempting to connect to Supabase...');
+      
       // Primero, obtener el total de productos para la paginación
       let countQuery = supabase
         .from('products')
@@ -57,7 +62,13 @@ const Home = () => {
         countQuery = countQuery.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,keywords.cs.{${searchTerm}}`);
       }
 
-      const { count } = await countQuery;
+      const { count, error: countError } = await countQuery;
+      
+      if (countError) {
+        console.error('Error counting products:', countError);
+        throw new Error(`Failed to count products: ${countError.message}`);
+      }
+
       setTotalProducts(count || 0);
 
       // Luego, obtener los productos para la página actual
@@ -75,12 +86,23 @@ const Home = () => {
         query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,keywords.cs.{${searchTerm}}`);
       }
 
-      const { data, error } = await query;
+      const { data, error: fetchError } = await query;
 
-      if (error) throw error;
-      setProducts(data || []);
+      if (fetchError) {
+        console.error('Error fetching products:', fetchError);
+        throw new Error(`Failed to fetch products: ${fetchError.message}`);
+      }
+
+      if (!data) {
+        throw new Error('No data received from Supabase');
+      }
+
+      console.log('Successfully fetched products:', data.length);
+      setProducts(data);
     } catch (error) {
-      console.error('Error loading products:', error);
+      console.error('Detailed error:', error);
+      setError(error instanceof Error ? error.message : 'An unknown error occurred');
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -105,6 +127,17 @@ const Home = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
       </div>
     );
   }
