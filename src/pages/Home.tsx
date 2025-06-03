@@ -62,7 +62,7 @@ const Home = () => {
       const { count, error: countError } = await countQuery;
       
       if (countError) {
-        throw new Error(`Failed to count products: ${countError.message}`);
+        throw new Error(`Error al contar productos: ${countError.message}`);
       }
 
       setTotalProducts(count || 0);
@@ -84,17 +84,17 @@ const Home = () => {
       const { data, error: fetchError } = await query;
 
       if (fetchError) {
-        throw new Error(`Failed to fetch products: ${fetchError.message}`);
+        throw new Error(`Error al cargar productos: ${fetchError.message}`);
       }
 
       if (!data) {
-        throw new Error('No data received from Supabase');
+        throw new Error('No se recibieron datos del servidor');
       }
 
       setProducts(data);
     } catch (error) {
       console.error('Error loading products:', error);
-      setError(error instanceof Error ? error.message : 'An unknown error occurred');
+      setError(error instanceof Error ? error.message : 'Ocurrió un error desconocido');
       setProducts([]);
     } finally {
       setLoading(false);
@@ -194,6 +194,7 @@ const Home = () => {
                     </svg>
                   </div>
                   <img
+                    
                     src={logo}
                     alt="Mayand Logo"
                     className="absolute top-2 left-2 h-8 w-auto z-10 opacity-60"
@@ -212,7 +213,7 @@ const Home = () => {
                   <h3 className="text-lg font-semibold mb-2 text-gray-800">{product.name}</h3>
                   <p className="text-gray-600 text-sm mb-2 line-clamp-2">{product.description}</p>
                   <div className="flex justify-between items-center text-sm mt-4">
-                    <span className="text-primary font-semibold">$ {product.unit_price}</span>
+                    <span className="text-primary font-semibold">MXN ${product.unit_price}</span>
                     <span className="text-gray-500 bg-gray-100 px-2 py-1 rounded-full text-xs">
                       {product.width}x{product.height}cm
                     </span>
@@ -261,11 +262,11 @@ const Home = () => {
               <div className="flex justify-between items-center mt-6">
                 <div>
                   <p className="text-sm text-gray-500">Precio unitario</p>
-                  <p className="text-2xl font-bold text-primary">${selectedProduct.unit_price}</p>
+                  <p className="text-2xl font-bold text-primary">MXN ${selectedProduct.unit_price}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-500">Precio mayoreo</p>
-                  <p className="text-xl font-semibold text-gray-800">${selectedProduct.bulk_price}</p>
+                  <p className="text-xl font-semibold text-gray-800">MXN ${selectedProduct.bulk_price}</p>
                 </div>
               </div>
               {selectedProduct.keywords && selectedProduct.keywords.length > 0 && (

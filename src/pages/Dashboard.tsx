@@ -95,7 +95,7 @@ const Dashboard = () => {
         setCurrentProduct(prev => ({
           ...prev,
           images: [...prev.images, imageUrl],
-          image_url: prev.image_url || imageUrl // Set as main image if none exists
+          image_url: prev.image_url || imageUrl
         }));
       }
     } finally {
@@ -216,7 +216,7 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div>Cargando...</div>;
   }
 
   return (
@@ -224,22 +224,22 @@ const Dashboard = () => {
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-gray-900">Product Management</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Gestión de Productos</h1>
             <button
               onClick={handleSignOut}
               className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700"
             >
-              Sign Out
+              Cerrar Sesión
             </button>
           </div>
 
           <div className="mt-8 bg-white shadow rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4">
-              {isEditing ? 'Edit Product' : 'Add New Product'}
+              {isEditing ? 'Editar Producto' : 'Agregar Nuevo Producto'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
+                <label className="block text-sm font-medium text-gray-700">Nombre</label>
                 <input
                   type="text"
                   value={currentProduct.name}
@@ -250,7 +250,7 @@ const Dashboard = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Description</label>
+                <label className="block text-sm font-medium text-gray-700">Descripción</label>
                 <textarea
                   value={currentProduct.description || ''}
                   onChange={(e) => setCurrentProduct({ ...currentProduct, description: e.target.value || null })}
@@ -259,7 +259,7 @@ const Dashboard = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Category</label>
+                <label className="block text-sm font-medium text-gray-700">Categoría</label>
                 <select
                   value={currentProduct.category}
                   onChange={(e) => setCurrentProduct({ ...currentProduct, category: e.target.value as ProductCategory })}
@@ -275,12 +275,12 @@ const Dashboard = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Keywords</label>
+                <label className="block text-sm font-medium text-gray-700">Etiquetas</label>
                 <input
                   type="text"
                   value={currentProduct.keywords.join(', ')}
                   onChange={handleKeywordsChange}
-                  placeholder="Enter keywords separated by commas"
+                  placeholder="Ingrese etiquetas separadas por comas"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
                 />
               </div>
@@ -303,7 +303,7 @@ const Dashboard = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Width (cm)</label>
+                  <label className="block text-sm font-medium text-gray-700">Ancho (cm)</label>
                   <input
                     type="number"
                     value={currentProduct.width}
@@ -315,7 +315,7 @@ const Dashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Height (cm)</label>
+                  <label className="block text-sm font-medium text-gray-700">Alto (cm)</label>
                   <input
                     type="number"
                     value={currentProduct.height}
@@ -329,7 +329,7 @@ const Dashboard = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Unit Price</label>
+                  <label className="block text-sm font-medium text-gray-700">Precio Unitario (MXN)</label>
                   <input
                     type="number"
                     value={currentProduct.unit_price}
@@ -341,7 +341,7 @@ const Dashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Bulk Price</label>
+                  <label className="block text-sm font-medium text-gray-700">Precio Mayoreo (MXN)</label>
                   <input
                     type="number"
                     value={currentProduct.bulk_price}
@@ -355,7 +355,7 @@ const Dashboard = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Images ({currentProduct.images.length}/4) - Máximo 5MB por imagen, formatos JPG y WebP
+                  Imágenes ({currentProduct.images.length}/4) - Máximo 5MB por imagen, formatos JPG y WebP
                 </label>
                 <input
                   type="file"
@@ -366,7 +366,7 @@ const Dashboard = () => {
                 />
                 {uploadingImage && (
                   <div className="mt-2 text-sm text-gray-500">
-                    Uploading image...
+                    Subiendo imagen...
                   </div>
                 )}
                 <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -374,7 +374,7 @@ const Dashboard = () => {
                     <div key={index} className="relative group">
                       <img
                         src={imageUrl}
-                        alt={`Product image ${index + 1}`}
+                        alt={`Imagen del producto ${index + 1}`}
                         className={`h-32 w-full object-cover rounded ${imageUrl === currentProduct.image_url ? 'ring-2 ring-primary' : ''}`}
                       />
                       <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded flex items-center justify-center">
@@ -382,7 +382,7 @@ const Dashboard = () => {
                           type="button"
                           onClick={() => handleImageDelete(imageUrl)}
                           className="bg-red-500 text-white p-1 rounded hover:bg-red-600"
-                          title="Delete image"
+                          title="Eliminar imagen"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -416,7 +416,7 @@ const Dashboard = () => {
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    Cancel
+                    Cancelar
                   </button>
                 )}
                 <button
@@ -424,7 +424,7 @@ const Dashboard = () => {
                   disabled={uploadingImage}
                   className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-700 disabled:opacity-50"
                 >
-                  {isEditing ? 'Update Product' : 'Add Product'}
+                  {isEditing ? 'Actualizar Producto' : 'Agregar Producto'}
                 </button>
               </div>
             </form>
@@ -434,13 +434,13 @@ const Dashboard = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Images</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Imágenes</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Material</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dimensions</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prices</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dimensiones</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precios</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -462,7 +462,7 @@ const Dashboard = () => {
                       <div className="text-sm font-medium text-gray-900">{product.name}</div>
                       <div className="text-sm text-gray-500">{product.description}</div>
                       <div className="text-xs text-gray-400 mt-1">
-                        Keywords: {product.keywords.join(', ')}
+                        Etiquetas: {product.keywords.join(', ')}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -475,21 +475,21 @@ const Dashboard = () => {
                       {product.width} x {product.height} cm
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">Unit: ${product.unit_price}</div>
-                      <div className="text-sm text-gray-500">Bulk: ${product.bulk_price}</div>
+                      <div className="text-sm text-gray-900">Unitario: MXN ${product.unit_price}</div>
+                      <div className="text-sm text-gray-500">Mayoreo: MXN ${product.bulk_price}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={() => handleEdit(product)}
                         className="text-primary hover:text-primary-700 mr-4"
                       >
-                        Edit
+                        Editar
                       </button>
                       <button
                         onClick={() => handleDelete(product.id)}
                         className="text-red-600 hover:text-red-900"
                       >
-                        Delete
+                        Eliminar
                       </button>
                     </td>
                   </tr>
