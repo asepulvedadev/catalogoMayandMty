@@ -5,6 +5,28 @@ import logo from '../assets/logo_mayand.png';
 
 const ITEMS_PER_PAGE = 8;
 
+const categories = [
+  { value: 'all', label: 'Todas las categorías' },
+  { value: 'christmas', label: 'Navidad' },
+  { value: 'displays', label: 'Displays' },
+  { value: 'easter', label: 'Pascua' },
+  { value: 'frames', label: 'Marcos' },
+  { value: 'geometric_shapes', label: 'Formas Geométricas' },
+  { value: 'houses_furniture', label: 'Casas y Muebles' },
+  { value: 'kitchen_items', label: 'Artículos de Cocina' },
+  { value: 'lamps_clocks', label: 'Lámparas y Relojes' },
+  { value: 'letters_numbers', label: 'Letras y Números' },
+  { value: 'living_hinges', label: 'Living Hinges' },
+  { value: 'mandalas_dreamcatchers', label: 'Mandalas y Atrapasueños' },
+  { value: 'maps', label: 'Mapas' },
+  { value: 'masks', label: 'Máscaras' },
+  { value: 'nature', label: 'Naturaleza' },
+  { value: 'office_supplies', label: 'Artículos de Oficina' },
+  { value: 'puzzles', label: 'Rompecabezas' },
+  { value: 'shelves', label: 'Estantes' },
+  { value: 'transportation', label: 'Transporte' }
+];
+
 const Home = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
