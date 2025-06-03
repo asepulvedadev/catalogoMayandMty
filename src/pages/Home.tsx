@@ -36,7 +36,20 @@ const Home = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
 
-  // ... (resto del código de estados y categorías igual)
+  // Calculate total pages based on total products and items per page
+  const totalPages = Math.ceil(totalProducts / ITEMS_PER_PAGE);
+
+  const prevPage = () => {
+    setCurrentPage((prev) => Math.max(0, prev - 1));
+  };
+
+  const nextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
+  };
+
+  const openModal = (product: Product) => {
+    setSelectedProduct(product);
+  };
 
   return (
     <div className="flex justify-center min-h-screen bg-gray-50">
@@ -124,8 +137,6 @@ const Home = () => {
                     </svg>
                   </button>
                 </div>
-                
-                {/* Resto del contenido del producto igual */}
               </div>
             ))}
           </div>
@@ -136,8 +147,6 @@ const Home = () => {
             </span>
           </div>
         </div>
-
-        {/* Modal igual que antes */}
       </div>
     </div>
   );
