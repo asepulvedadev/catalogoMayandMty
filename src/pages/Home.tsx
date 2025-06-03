@@ -111,7 +111,7 @@ const Home = () => {
     setCurrentPage(page);
   };
 
-  const openModal = (product: Product) => {
+  const openModal = (_product: Product) => {
     // Modal functionality will be implemented later
   };
 
