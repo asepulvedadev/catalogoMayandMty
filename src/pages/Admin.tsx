@@ -39,6 +39,7 @@ const Admin = () => {
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+      setPassword(''); // Clear password field after failed login attempt
     } finally {
       setLoading(false);
     }
