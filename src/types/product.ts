@@ -24,15 +24,16 @@ export interface Product {
   id: string;
   name: string;
   description: string | null;
-  material: string; // Changed from Material to string
+  material: string;
   width: number;
   height: number;
   unit_price: number;
   bulk_price: number;
   image_url: string | null;
+  images: string[];
   created_at: string;
   updated_at: string;
-  category: string; // Changed from ProductCategory to string
+  category: string;
   keywords: string[];
 }
 
@@ -40,12 +41,13 @@ export interface ProductFormState {
   id?: string;
   name: string;
   description: string | null;
-  material: string; // Changed from Material to string
+  material: string;
   width: number;
   height: number;
   unit_price: number;
   bulk_price: number;
   image_url: string | null;
-  category: string; // Changed from ProductCategory to string
+  images: string[];
+  category: string;
   keywords: string[];
 }
