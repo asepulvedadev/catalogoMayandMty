@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearch } from '../hooks/useSearch';
 import { useTracking } from '../hooks/useTracking';
 import type { Product, ProductCategory, Material } from '../types/product';
 import Header from '../components/Header';
 import ProductFeed from '../components/ProductFeed';
-import RecommendedProducts from '../components/RecommendedProducts';
 
 const categories = [
   { value: 'all', label: 'Todas las categorías' },
@@ -96,8 +95,6 @@ const Home = () => {
       />
       <div className="flex justify-center min-h-screen bg-gray-50">
         <div className="w-full md:w-[80%] lg:w-[90%] xl:w-[80%] px-4 py-8">
-          <RecommendedProducts onProductClick={openModal} />
-
           <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
             <select
               value={filters.category || 'all'}
