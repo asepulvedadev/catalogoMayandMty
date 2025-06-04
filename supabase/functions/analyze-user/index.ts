@@ -10,6 +10,21 @@ interface RequestBody {
   userId: string;
 }
 
+// Validate environment variables
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Missing required environment variables: SUPABASE_URL and SUPABASE_ANON_KEY must be set');
+}
+
+// Initialize Supabase client outside the handler
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: false,
+  },
+});
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -20,16 +35,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        auth: {
-          persistSession: false,
-        },
-      }
-    );
-
     // Get request body
     const { userId } = await req.json() as RequestBody;
 
@@ -38,12 +43,16 @@ Deno.serve(async (req) => {
     }
 
     // Get user interactions
-    const { data: interactions } = await supabaseClient
+    const { data: interactions, error: interactionsError } = await supabaseClient
       .from('user_interactions')
       .select('*')
       .eq('user_id', userId)
       .order('timestamp', { ascending: false })
       .limit(100);
+
+    if (interactionsError) {
+      throw new Error(`Failed to fetch user interactions: ${interactionsError.message}`);
+    }
 
     if (!interactions || interactions.length === 0) {
       // Return default recommendations if no interactions
@@ -71,10 +80,14 @@ Deno.serve(async (req) => {
 
     // Get products user interacted with
     const productIds = [...new Set(interactions.map(i => i.product_id))];
-    const { data: products } = await supabaseClient
+    const { data: products, error: productsError } = await supabaseClient
       .from('products')
       .select('*')
       .in('id', productIds);
+
+    if (productsError) {
+      throw new Error(`Failed to fetch products: ${productsError.message}`);
+    }
 
     // Analyze user preferences
     const categories = products?.reduce((acc, p) => {
@@ -108,7 +121,7 @@ Deno.serve(async (req) => {
     };
 
     // Update user profile
-    await supabaseClient
+    const { error: updateError } = await supabaseClient
       .from('user_profiles')
       .upsert({
         user_id: userId,
@@ -116,6 +129,10 @@ Deno.serve(async (req) => {
         ml_features: response.ml_features,
         last_updated: new Date().toISOString(),
       });
+
+    if (updateError) {
+      throw new Error(`Failed to update user profile: ${updateError.message}`);
+    }
 
     return new Response(
       JSON.stringify(response),
@@ -127,7 +144,10 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error:', error.message);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'If this error persists, please ensure SUPABASE_URL and SUPABASE_ANON_KEY are properly configured.'
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
