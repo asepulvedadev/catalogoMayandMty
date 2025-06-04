@@ -25,24 +25,34 @@ export const uploadImage = async (file: File): Promise<string | null> => {
       return null;
     }
 
+    // Verificar si el bucket existe
+    const { data: buckets } = await supabase.storage.listBuckets();
+    if (!buckets?.find(bucket => bucket.name === BUCKET_NAME)) {
+      const { error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
+        public: true,
+        allowedMimeTypes: ALLOWED_MIME_TYPES,
+        fileSizeLimit: MAX_FILE_SIZE
+      });
+      if (createError) throw createError;
+    }
+
     const fileExt = file.type === 'image/jpeg' ? 'jpg' : 'webp';
     const fileName = `${uuidv4()}.${fileExt}`;
-    const filePath = fileName;
 
-    // Upload the file
-    const { error: uploadError, data } = await supabase.storage
+    // Subir el archivo
+    const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(filePath, file, {
+      .upload(fileName, file, {
         cacheControl: '3600',
         upsert: false
       });
 
     if (uploadError) throw uploadError;
 
-    // Get the public URL
+    // Obtener la URL pública
     const { data: { publicUrl } } = supabase.storage
       .from(BUCKET_NAME)
-      .getPublicUrl(filePath);
+      .getPublicUrl(fileName);
 
     return publicUrl;
   } catch (error) {
