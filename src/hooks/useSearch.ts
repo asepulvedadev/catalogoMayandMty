@@ -87,5 +87,3 @@ export function useSearch(initialFilters?: SearchFilters) {
     pageCount: Math.ceil(state.totalCount / ITEMS_PER_PAGE),
   };
 }
-
-export { useSearch }
