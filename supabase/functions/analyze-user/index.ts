@@ -7,19 +7,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-// Initialize Supabase client
-const supabaseUrl = Deno.env.get('SUPABASE_URL');
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+// Use environment variable for OpenAI API key
+const openai = new OpenAIApi(new Configuration({
+  apiKey: Deno.env.get('OPENAI_API_KEY')
+}));
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Required environment variables are not set');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-// Initialize OpenAI client if API key is available
-const openaiKey = Deno.env.get('OPENAI_API_KEY');
-const openai = openaiKey ? new OpenAIApi(new Configuration({ apiKey: openaiKey })) : null;
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') ?? '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+);
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -63,8 +59,8 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to fetch interactions: ${interactionsError.message}`);
     }
 
-    // Generate basic analysis if no OpenAI or not enough data
-    if (!openai || !interactions?.length) {
+    // Generate basic analysis if not enough data
+    if (!interactions?.length) {
       const basicAnalysis = {
         preferences: {
           categories: [],
