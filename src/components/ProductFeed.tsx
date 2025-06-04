@@ -1,6 +1,10 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Navigation } from 'swiper/modules';
 import type { Product } from '../types/product';
 import logo from '../assets/logo_mayand.png';
+import 'swiper/css';
+import 'swiper/css/navigation';
 
 interface ProductFeedProps {
   products: Product[];
@@ -55,14 +59,22 @@ const ProductFeed = ({ products, loading, onProductClick, onLoadMore, hasMore }:
           className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transform transition-all duration-300 hover:scale-102 hover:shadow-2xl backdrop-blur-sm"
         >
           <div className="relative pb-[100%] bg-gray-100 overflow-hidden group">
-            {product.image_url && (
-              <img
-                src={product.image_url}
-                alt={product.name}
-                className="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-110 group-hover:rotate-1"
-                loading="lazy"
-              />
-            )}
+            <Swiper
+              modules={[Navigation]}
+              navigation
+              className="absolute inset-0"
+            >
+              {product.images.map((image, imageIndex) => (
+                <SwiperSlide key={imageIndex}>
+                  <img
+                    src={image}
+                    alt={`${product.name} - Vista ${imageIndex + 1}`}
+                    className="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-110 group-hover:rotate-1"
+                    loading="lazy"
+                  />
+                </SwiperSlide>
+              ))}
+            </Swiper>
             <img
               src={logo}
               alt="Mayand Logo"
@@ -70,7 +82,7 @@ const ProductFeed = ({ products, loading, onProductClick, onLoadMore, hasMore }:
             />
             <button 
               onClick={() => onProductClick(product)}
-              className="absolute top-2 right-2 bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-colors duration-300 transform hover:scale-110"
+              className="absolute top-2 right-2 bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-colors duration-300 transform hover:scale-110 z-10"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
