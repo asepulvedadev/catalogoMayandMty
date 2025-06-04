@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearch } from '../hooks/useSearch';
+import { useTracking } from '../hooks/useTracking';
 import type { Product, ProductCategory, Material } from '../types/product';
 import Header from '../components/Header';
 import logo from '../assets/logo_mayand.png';
@@ -44,6 +45,7 @@ const sortOptions = [
 
 const Home = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const { trackView, trackAction } = useTracking();
   const {
     searchTerm,
     setSearchTerm,
@@ -72,13 +74,38 @@ const Home = () => {
     }
   };
 
-  const openModal = (product: Product) => {
+  const openModal = async (product: Product) => {
     setSelectedProduct(product);
+    await trackAction(product.id, 'click');
   };
 
   const closeModal = () => {
     setSelectedProduct(null);
   };
+
+  useEffect(() => {
+    const cleanupFns = new Map<string, () => void>();
+
+    const trackVisibleProducts = async () => {
+      // Limpiar tracking anterior
+      cleanupFns.forEach(cleanup => cleanup());
+      cleanupFns.clear();
+
+      // Iniciar tracking para productos visibles
+      for (const product of products) {
+        const cleanup = await trackView(product.id);
+        if (cleanup) {
+          cleanupFns.set(product.id, cleanup);
+        }
+      }
+    };
+
+    trackVisibleProducts();
+
+    return () => {
+      cleanupFns.forEach(cleanup => cleanup());
+    };
+  }, [products, trackView]);
 
   return (
     <>
