@@ -1,17 +1,17 @@
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/webp'];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/webp', 'image/png']; // Agregado soporte para PNG
 const BUCKET_NAME = 'products';
 
 export const validateImage = (file: File): string | null => {
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-    return 'Solo se permiten archivos JPG y WebP';
+    return 'Solo se permiten archivos JPG, PNG y WebP';
   }
   
   if (file.size > MAX_FILE_SIZE) {
-    return 'El tamaño máximo permitido es 5MB';
+    return 'El tamaño máximo permitido es 10MB';
   }
 
   return null;
@@ -36,13 +36,36 @@ export const uploadImage = async (file: File): Promise<string | null> => {
       if (createError) throw createError;
     }
 
-    const fileExt = file.type === 'image/jpeg' ? 'jpg' : 'webp';
+    // Convertir a WebP si es necesario
+    let uploadFile = file;
+    if (file.type !== 'image/webp') {
+      try {
+        const img = new Image();
+        const blob = await new Promise<Blob>((resolve) => {
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0);
+            canvas.toBlob((b) => resolve(b!), 'image/webp', 0.9);
+          };
+          img.src = URL.createObjectURL(file);
+        });
+        uploadFile = new File([blob], `${file.name}.webp`, { type: 'image/webp' });
+      } catch (err) {
+        console.warn('Error al convertir a WebP, subiendo imagen original:', err);
+      }
+    }
+
+    const fileExt = uploadFile.type === 'image/webp' ? 'webp' : 
+                    uploadFile.type === 'image/png' ? 'png' : 'jpg';
     const fileName = `${uuidv4()}.${fileExt}`;
 
     // Subir el archivo
     const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(fileName, file, {
+      .upload(fileName, uploadFile, {
         cacheControl: '3600',
         upsert: false
       });

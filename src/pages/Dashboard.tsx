@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { uploadImage, deleteImage } from '../utils/imageUpload';
@@ -8,6 +8,7 @@ const PRODUCTS_PER_PAGE = 12;
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -91,26 +92,34 @@ const Dashboard = () => {
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
 
-    if (currentProduct.images.length >= 4) {
+    const remainingSlots = 4 - currentProduct.images.length;
+    if (remainingSlots <= 0) {
       alert('Máximo 4 imágenes por producto');
       return;
     }
 
+    const filesToUpload = files.slice(0, remainingSlots);
+
     try {
       setUploadingImage(true);
-      const imageUrl = await uploadImage(file);
-      if (imageUrl) {
-        setCurrentProduct(prev => ({
-          ...prev,
-          images: [...prev.images, imageUrl],
-          image_url: prev.image_url || imageUrl
-        }));
+      for (const file of filesToUpload) {
+        const imageUrl = await uploadImage(file);
+        if (imageUrl) {
+          setCurrentProduct(prev => ({
+            ...prev,
+            images: [...prev.images, imageUrl],
+            image_url: prev.image_url || imageUrl
+          }));
+        }
       }
     } finally {
       setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -241,15 +250,33 @@ const Dashboard = () => {
               {isEditing ? 'Editar Producto' : 'Agregar Nuevo Producto'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nombre</label>
-                <input
-                  type="text"
-                  value={currentProduct.name}
-                  onChange={(e) => setCurrentProduct({ ...currentProduct, name: e.target.value })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                  <input
+                    type="text"
+                    value={currentProduct.name}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, name: e.target.value })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Categoría</label>
+                  <select
+                    value={currentProduct.category}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, category: e.target.value as ProductCategory })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                    required
+                  >
+                    {categories.map(({ value, label }) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>
@@ -258,23 +285,8 @@ const Dashboard = () => {
                   value={currentProduct.description || ''}
                   onChange={(e) => setCurrentProduct({ ...currentProduct, description: e.target.value || null })}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                  rows={3}
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Categoría</label>
-                <select
-                  value={currentProduct.category}
-                  onChange={(e) => setCurrentProduct({ ...currentProduct, category: e.target.value as ProductCategory })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                  required
-                >
-                  {categories.map(({ value, label }) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <div>
@@ -304,7 +316,7 @@ const Dashboard = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Ancho (cm)</label>
                   <input
@@ -330,7 +342,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Precio Unitario (MXN)</label>
                   <input
@@ -358,13 +370,20 @@ const Dashboard = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Imágenes ({currentProduct.images.length}/4) - Máximo 5MB por imagen, formatos JPG y WebP
+                  Imágenes ({currentProduct.images.length}/4) - Máximo 10MB por imagen, formatos JPG, PNG y WebP
                 </label>
                 <input
+                  ref={fileInputRef}
                   type="file"
-                  accept="image/jpeg,image/webp"
+                  accept="image/jpeg,image/webp,image/png"
                   onChange={handleImageUpload}
-                  className="mt-1 block w-full"
+                  className="mt-1 block w-full text-sm text-gray-500
+                    file:mr-4 file:py-2 file:px-4
+                    file:rounded-md file:border-0
+                    file:text-sm file:font-semibold
+                    file:bg-primary file:text-white
+                    hover:file:bg-primary-700"
+                  multiple
                   disabled={currentProduct.images.length >= 4 || uploadingImage}
                 />
                 {uploadingImage && (
