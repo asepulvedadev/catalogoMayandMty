@@ -12,13 +12,9 @@ export function useRecommendations() {
       try {
         setLoading(true);
         
-        // Obtener productos más vistos/interactuados usando group by
+        // Get most interacted products using a raw query with group by
         const { data: interactions } = await supabase
-          .from('user_interactions')
-          .select('product_id, count:count(*)')
-          .group('product_id')
-          .order('count', { ascending: false })
-          .limit(8);
+          .rpc('get_popular_products', { limit_count: 8 });
 
         if (interactions?.length) {
           const productIds = interactions.map(i => i.product_id);
@@ -33,7 +29,7 @@ export function useRecommendations() {
             setProducts(recommendedProducts);
           }
         } else {
-          // Si no hay interacciones, mostrar productos recientes
+          // If no interactions, show recent products
           const { data: recentProducts } = await supabase
             .from('products')
             .select('*')
