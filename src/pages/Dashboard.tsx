@@ -226,6 +226,16 @@ const Dashboard = () => {
     setCurrentProduct(prev => ({ ...prev, keywords }));
   };
 
+  const handleSetImageView = (imageUrl: string, view: 'card' | 'slider' | 'thumbnail') => {
+    setCurrentProduct(prev => {
+      if (view === 'card') {
+        return { ...prev, image_url: imageUrl };
+      }
+      // Aquí puedes agregar más lógica para otras vistas cuando sea necesario
+      return prev;
+    });
+  };
+
   if (loading && products.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -406,19 +416,26 @@ const Dashboard = () => {
                         src={imageUrl}
                         alt={`Imagen del producto ${index + 1}`}
                         className={`h-32 w-full object-cover rounded ${imageUrl === currentProduct.image_url ? 'ring-2 ring-primary' : ''}`}
-                        onClick={() => setCurrentProduct(prev => ({ ...prev, image_url: imageUrl }))}
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded flex items-center justify-center">
-                        <button
-                          type="button"
-                          onClick={() => handleImageDelete(imageUrl)}
-                          className="bg-red-500 text-white p-1 rounded hover:bg-red-600"
-                          title="Eliminar imagen"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
-                        </button>
+                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded flex flex-col items-center justify-center space-y-2">
+                        <div className="flex space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => handleSetImageView(imageUrl, 'card')}
+                            className={`p-1 rounded ${imageUrl === currentProduct.image_url ? 'bg-primary text-white' : 'bg-white text-gray-800'} hover:bg-primary hover:text-white`}
+                            title="Usar como imagen principal"
+                          >
+                            Principal
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleImageDelete(imageUrl)}
+                            className="bg-red-500 text-white p-1 rounded hover:bg-red-600"
+                            title="Eliminar imagen"
+                          >
+                            Eliminar
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
