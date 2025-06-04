@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDebounce } from './useDebounce';
 import { supabase } from '../lib/supabase';
 import type { Product, ProductCategory, Material } from '../types/product';
@@ -19,6 +19,15 @@ interface SearchState {
   totalCount: number;
 }
 
+interface CacheEntry {
+  products: Product[];
+  totalCount: number;
+  timestamp: number;
+}
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const ITEMS_PER_PAGE = 12;
+
 export function useSearch(initialFilters?: SearchFilters) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(initialFilters || {});
@@ -30,10 +39,47 @@ export function useSearch(initialFilters?: SearchFilters) {
     totalCount: 0,
   });
 
+  const cache = useRef<Map<string, CacheEntry>>(new Map());
   const debouncedSearchTerm = useDebounce(searchTerm);
-  const ITEMS_PER_PAGE = 12;
+
+  const getCacheKey = useCallback(() => {
+    return JSON.stringify({
+      term: debouncedSearchTerm,
+      filters,
+      page,
+    });
+  }, [debouncedSearchTerm, filters, page]);
+
+  const getCachedData = useCallback(() => {
+    const key = getCacheKey();
+    const cached = cache.current.get(key);
+    if (!cached) return null;
+    
+    if (Date.now() - cached.timestamp > CACHE_DURATION) {
+      cache.current.delete(key);
+      return null;
+    }
+    
+    return cached;
+  }, [getCacheKey]);
+
+  const setCachedData = useCallback((data: Omit<CacheEntry, 'timestamp'>) => {
+    const key = getCacheKey();
+    cache.current.set(key, { ...data, timestamp: Date.now() });
+  }, [getCacheKey]);
 
   const searchProducts = useCallback(async () => {
+    const cachedData = getCachedData();
+    if (cachedData) {
+      setState({
+        products: cachedData.products,
+        loading: false,
+        error: null,
+        totalCount: cachedData.totalCount,
+      });
+      return;
+    }
+
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
@@ -52,11 +98,16 @@ export function useSearch(initialFilters?: SearchFilters) {
 
       if (error) throw error;
 
-      setState({
+      const newState = {
         products: data || [],
+        totalCount: count || 0,
+      };
+
+      setCachedData(newState);
+      setState({
+        ...newState,
         loading: false,
         error: null,
-        totalCount: count || 0,
       });
     } catch (error) {
       setState(prev => ({
@@ -65,7 +116,7 @@ export function useSearch(initialFilters?: SearchFilters) {
         error: error instanceof Error ? error.message : 'Error en la búsqueda',
       }));
     }
-  }, [debouncedSearchTerm, filters, page]);
+  }, [debouncedSearchTerm, filters, page, getCachedData, setCachedData]);
 
   useEffect(() => {
     searchProducts();
