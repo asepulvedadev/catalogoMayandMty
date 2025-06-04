@@ -1,164 +1,130 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.39.3';
-import { Configuration, OpenAIApi } from 'npm:openai@4.24.1';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
 
-// Use environment variable for OpenAI API key
-const openai = new OpenAIApi(new Configuration({
-  apiKey: Deno.env.get('OPENAI_API_KEY')
-}));
-
-const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-);
-
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+serve(async (req: Request) => {
   try {
-    // Validate request method
-    if (req.method !== 'POST') {
-      throw new Error('Method not allowed');
-    }
-
-    // Parse and validate request body
-    const { userId } = await req.json();
-    if (!userId) {
-      throw new Error('userId is required');
-    }
-
-    // Get user interactions
-    const { data: interactions, error: interactionsError } = await supabase
-      .from('user_interactions')
-      .select(`
-        action,
-        duration_seconds,
-        timestamp,
-        products (
-          name,
-          description,
-          category,
-          material,
-          unit_price,
-          keywords
-        )
-      `)
-      .eq('user_id', userId)
-      .order('timestamp', { ascending: false })
-      .limit(50);
-
-    if (interactionsError) {
-      throw new Error(`Failed to fetch interactions: ${interactionsError.message}`);
-    }
-
-    // Generate basic analysis if not enough data
-    if (!interactions?.length) {
-      const basicAnalysis = {
-        preferences: {
-          categories: [],
-          materials: [],
-          price_range: [0, 0],
-          interests: []
-        },
-        ml_features: Array(10).fill(0.5),
-        recommendations: {
-          categories: [],
-          products: [],
-          explanation: "No hay suficientes datos para generar recomendaciones personalizadas."
-        }
-      };
-
-      // Update user profile with basic analysis
-      await supabase.from('user_profiles').upsert({
-        user_id: userId,
-        preferences: basicAnalysis.preferences,
-        ml_features: basicAnalysis.ml_features,
-        last_updated: new Date().toISOString()
+    // Handle CORS preflight requests
+    if (req.method === "OPTIONS") {
+      return new Response(null, {
+        status: 200,
+        headers: corsHeaders,
       });
-
-      return new Response(
-        JSON.stringify(basicAnalysis),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
-    // Prepare data for OpenAI analysis
-    const userBehavior = interactions.map(i => ({
-      action: i.action,
-      duration: i.duration_seconds,
-      product: i.products,
-      timestamp: i.timestamp
-    }));
+    // Get user ID from request
+    const { user_id } = await req.json();
+    if (!user_id) {
+      throw new Error("User ID is required");
+    }
 
-    // Generate OpenAI analysis
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4',
-      messages: [{
-        role: 'user',
-        content: `Analiza estas ${interactions.length} interacciones de usuario:
-          ${JSON.stringify(userBehavior, null, 2)}
-          
-          Genera un perfil detallado y recomendaciones en formato JSON:
-          {
-            "preferences": {
-              "categories": ["3 categorías preferidas"],
-              "materials": ["materiales preferidos"],
-              "price_range": [min, max],
-              "interests": ["palabras clave"]
-            },
-            "ml_features": [10 valores 0-1],
-            "recommendations": {
-              "categories": ["categorías sugeridas"],
-              "products": ["productos sugeridos"],
-              "explanation": "explicación en español"
-            }
-          }
-          
-          Notas:
-          - Usa solo categorías y materiales existentes
-          - Precios realistas basados en interacciones
-          - Keywords relevantes para búsquedas
-          - ml_features: precio(2), tamaño(2), complejidad(2), estilo(2), uso(2)`
-      }],
-      temperature: 0.3,
-      max_tokens: 1000
-    });
-
-    const analysis = JSON.parse(completion.data.choices[0].message.content);
-
-    // Update user profile
-    await supabase.from('user_profiles').upsert({
-      user_id: userId,
-      preferences: analysis.preferences,
-      ml_features: analysis.ml_features,
-      last_updated: new Date().toISOString()
-    });
-
-    return new Response(
-      JSON.stringify(analysis),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    // Create Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      {
+        auth: {
+          persistSession: false,
+        },
+      }
     );
 
-  } catch (error) {
-    console.error('Error in analyze-user function:', error);
+    // Get user interactions
+    const { data: interactions, error: interactionsError } = await supabaseClient
+      .from("user_interactions")
+      .select("*")
+      .eq("user_id", user_id);
+
+    if (interactionsError) {
+      throw interactionsError;
+    }
+
+    // Analyze user behavior and generate features
+    const features = analyzeUserBehavior(interactions);
+
+    // Update user profile with new features
+    const { error: updateError } = await supabaseClient
+      .from("user_profiles")
+      .upsert({
+        user_id,
+        ml_features: features,
+        last_updated: new Date().toISOString(),
+      });
+
+    if (updateError) {
+      throw updateError;
+    }
 
     return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : 'An unexpected error occurred',
-        status: 500
-      }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      JSON.stringify({ success: true, features }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+        status: 200,
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+        status: 400,
       }
     );
   }
 });
+
+function analyzeUserBehavior(interactions: any[]): number[] {
+  // Initialize feature vector
+  const features = new Array(10).fill(0);
+
+  if (!interactions || interactions.length === 0) {
+    return features;
+  }
+
+  // Calculate features based on interactions
+  const viewCount = interactions.filter(i => i.action === "view").length;
+  const clickCount = interactions.filter(i => i.action === "click").length;
+  const cartCount = interactions.filter(i => i.action === "cart").length;
+  const buyCount = interactions.filter(i => i.action === "buy").length;
+
+  // Total interactions
+  features[0] = interactions.length;
+  
+  // Action ratios
+  features[1] = viewCount / interactions.length;
+  features[2] = clickCount / interactions.length;
+  features[3] = cartCount / interactions.length;
+  features[4] = buyCount / interactions.length;
+
+  // Average duration
+  features[5] = interactions.reduce((sum, i) => sum + (i.duration_seconds || 0), 0) / interactions.length;
+
+  // Engagement score (weighted sum of actions)
+  features[6] = (viewCount + clickCount * 2 + cartCount * 3 + buyCount * 4) / interactions.length;
+
+  // Time-based features
+  const timestamps = interactions.map(i => new Date(i.timestamp).getTime());
+  const timeSpan = Math.max(...timestamps) - Math.min(...timestamps);
+  features[7] = timeSpan / (1000 * 60 * 60 * 24); // Days of activity
+
+  // Frequency
+  features[8] = interactions.length / (timeSpan / (1000 * 60 * 60 * 24) || 1); // Actions per day
+
+  // Recency
+  const mostRecent = Math.max(...timestamps);
+  const now = new Date().getTime();
+  features[9] = (now - mostRecent) / (1000 * 60 * 60 * 24); // Days since last action
+
+  return features;
+}
