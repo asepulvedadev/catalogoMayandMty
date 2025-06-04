@@ -3,6 +3,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation } from 'swiper/modules';
 import type { Product } from '../types/product';
 import logo from '../assets/logo_mayand.png';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
@@ -56,7 +57,7 @@ const ProductFeed = ({ products, loading, onProductClick, onLoadMore, hasMore }:
         <div
           key={product.id}
           ref={index === products.length - 1 ? lastProductRef : null}
-          className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transform transition-all duration-300 hover:scale-102 hover:shadow-2xl backdrop-blur-sm"
+          className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transform transition-all duration-300 hover:scale-102 hover:shadow-2xl backdrop-blur-sm relative"
         >
           <div className="relative aspect-square bg-gray-100 overflow-hidden group">
             <Swiper
@@ -90,6 +91,13 @@ const ProductFeed = ({ products, loading, onProductClick, onLoadMore, hasMore }:
                 {product.width}x{product.height}cm
               </span>
             </div>
+            <button
+              onClick={() => onProductClick(product)}
+              className="mt-4 w-full bg-primary hover:bg-primary-700 text-white rounded-md py-2 px-4 flex items-center justify-center gap-2 transition-colors duration-300"
+            >
+              <PlusIcon className="h-5 w-5" />
+              <span>Ver detalles</span>
+            </button>
           </div>
         </div>
       ))}
