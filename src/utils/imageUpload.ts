@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabase';
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/webp', 'image/png']; // Agregado soporte para PNG
+const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/webp', 'image/png', 'image/jpg'];
 const BUCKET_NAME = 'products';
 
 export const validateImage = (file: File): string | null => {
@@ -11,7 +11,7 @@ export const validateImage = (file: File): string | null => {
   }
   
   if (file.size > MAX_FILE_SIZE) {
-    return 'El tamaño máximo permitido es 10MB';
+    return 'El tamaño máximo permitido es 15MB';
   }
 
   return null;
@@ -21,8 +21,7 @@ export const uploadImage = async (file: File): Promise<string | null> => {
   try {
     const validationError = validateImage(file);
     if (validationError) {
-      alert(validationError);
-      return null;
+      throw new Error(validationError);
     }
 
     // Verificar si el bucket existe
@@ -36,36 +35,67 @@ export const uploadImage = async (file: File): Promise<string | null> => {
       if (createError) throw createError;
     }
 
-    // Convertir a WebP si es necesario
-    let uploadFile = file;
-    if (file.type !== 'image/webp') {
-      try {
-        const img = new Image();
-        const blob = await new Promise<Blob>((resolve) => {
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx?.drawImage(img, 0, 0);
-            canvas.toBlob((b) => resolve(b!), 'image/webp', 0.9);
-          };
-          img.src = URL.createObjectURL(file);
-        });
-        uploadFile = new File([blob], `${file.name}.webp`, { type: 'image/webp' });
-      } catch (err) {
-        console.warn('Error al convertir a WebP, subiendo imagen original:', err);
+    // Procesar la imagen antes de subirla
+    let processedFile = file;
+    try {
+      // Crear un elemento de imagen para procesar
+      const img = new Image();
+      const imgUrl = URL.createObjectURL(file);
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imgUrl;
+      });
+
+      // Crear canvas para el procesamiento
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      // Redimensionar si la imagen es muy grande
+      const MAX_DIMENSION = 2048;
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        if (width > height) {
+          height = Math.round((height * MAX_DIMENSION) / width);
+          width = MAX_DIMENSION;
+        } else {
+          width = Math.round((width * MAX_DIMENSION) / height);
+          height = MAX_DIMENSION;
+        }
       }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        // Dibujar la imagen con la nueva dimensión
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Convertir a blob
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((b) => resolve(b!), 'image/webp', 0.85);
+        });
+
+        processedFile = new File([blob], `${file.name}.webp`, { type: 'image/webp' });
+      }
+
+      // Limpiar
+      URL.revokeObjectURL(imgUrl);
+    } catch (err) {
+      console.warn('Error al procesar la imagen:', err);
+      // Continuar con el archivo original si hay error en el procesamiento
     }
 
-    const fileExt = uploadFile.type === 'image/webp' ? 'webp' : 
-                    uploadFile.type === 'image/png' ? 'png' : 'jpg';
+    const fileExt = processedFile.type === 'image/webp' ? 'webp' : 
+                    processedFile.type === 'image/png' ? 'png' : 'jpg';
     const fileName = `${uuidv4()}.${fileExt}`;
 
     // Subir el archivo
     const { error: uploadError } = await supabase.storage
       .from(BUCKET_NAME)
-      .upload(fileName, uploadFile, {
+      .upload(fileName, processedFile, {
         cacheControl: '3600',
         upsert: false
       });
@@ -79,9 +109,7 @@ export const uploadImage = async (file: File): Promise<string | null> => {
 
     return publicUrl;
   } catch (error) {
-    console.error('Error al subir imagen:', error);
-    alert('Error al subir la imagen. Por favor, intenta de nuevo.');
-    return null;
+    throw new Error(error instanceof Error ? error.message : 'Error al subir la imagen');
   }
 };
 
@@ -97,8 +125,6 @@ export const deleteImage = async (url: string): Promise<boolean> => {
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Error al eliminar imagen:', error);
-    alert('Error al eliminar la imagen. Por favor, intenta de nuevo.');
-    return false;
+    throw new Error('Error al eliminar la imagen');
   }
 };
