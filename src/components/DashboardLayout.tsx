@@ -80,7 +80,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                               <Link
                                 to={item.href}
                                 className={`
-                                  group flex gap-x-3 rounded-md p-2 text-sm leading-6 justify-center items-center
+                                  group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6
                                   ${location.pathname === item.href
                                     ? 'bg-primary-700 text-white'
                                     : 'text-gray-200 hover:bg-primary-700 hover:text-white'
@@ -122,7 +122,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       <Link
                         to={item.href}
                         className={`
-                          group flex gap-x-3 rounded-md p-2 text-sm leading-6 justify-center items-center
+                          group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6
                           ${location.pathname === item.href
                             ? 'bg-primary-700 text-white'
                             : 'text-gray-200 hover:bg-primary-700 hover:text-white'
