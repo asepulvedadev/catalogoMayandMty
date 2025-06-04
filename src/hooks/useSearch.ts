@@ -127,6 +127,10 @@ export function useSearch(initialFilters?: SearchFilters) {
     setPage(0);
   };
 
+  const loadMore = useCallback(() => {
+    setPage(prev => prev + 1);
+  }, []);
+
   return {
     searchTerm,
     setSearchTerm,
@@ -134,6 +138,7 @@ export function useSearch(initialFilters?: SearchFilters) {
     updateFilters,
     page,
     setPage,
+    loadMore,
     ...state,
     pageCount: Math.ceil(state.totalCount / ITEMS_PER_PAGE),
   };
