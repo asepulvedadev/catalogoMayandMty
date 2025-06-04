@@ -38,7 +38,6 @@ const materials: { value: Material; label: string }[] = [
 ];
 
 const sortOptions = [
-  { value: 'relevance', label: 'Relevancia' },
   { value: 'price', label: 'Precio' },
   { value: 'name', label: 'Nombre' }
 ];
@@ -116,7 +115,7 @@ const Home = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Ordenar por</label>
             <select
-              value={`${filters.sortBy || 'relevance'}-${filters.sortDirection || 'desc'}`}
+              value={`${filters.sortBy || 'price'}-${filters.sortDirection || 'desc'}`}
               onChange={(e) => handleFilterChange('sort', e.target.value)}
               className="w-full p-2 border rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
             >
@@ -173,7 +172,7 @@ const Home = () => {
               </select>
 
               <select
-                value={`${filters.sortBy || 'relevance'}-${filters.sortDirection || 'desc'}`}
+                value={`${filters.sortBy || 'price'}-${filters.sortDirection || 'desc'}`}
                 onChange={(e) => handleFilterChange('sort', e.target.value)}
                 className="p-2 border rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
               >
