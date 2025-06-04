@@ -494,5 +494,3 @@ export default function Quotes() {
     </div>
   );
 }
-
-export default Quotes
