@@ -39,7 +39,7 @@ export function useSearch(initialFilters?: SearchFilters) {
     try {
       const { data, error, count } = await supabase
         .rpc('search_products', {
-          search_query: debouncedSearchTerm,
+          search_query: debouncedSearchTerm || null,
           category_filter: filters.category,
           material_filter: filters.material,
           min_price: filters.minPrice,
