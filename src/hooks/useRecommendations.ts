@@ -12,10 +12,11 @@ export function useRecommendations() {
       try {
         setLoading(true);
         
-        // Obtener productos más vistos/interactuados
+        // Obtener productos más vistos/interactuados usando group by
         const { data: interactions } = await supabase
           .from('user_interactions')
-          .select('product_id, count')
+          .select('product_id, count:count(*)')
+          .group('product_id')
           .order('count', { ascending: false })
           .limit(8);
 
