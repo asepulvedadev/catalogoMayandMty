@@ -1,7 +1,8 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Home from './pages/Home';
 import Admin from './pages/Admin';
 import Dashboard from './pages/Dashboard';
+import DashboardHome from './pages/DashboardHome';
 import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './components/DashboardLayout';
 import Footer from './components/Footer';
@@ -19,12 +20,18 @@ function App() {
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <DashboardLayout>
-                    <Dashboard />
-                  </DashboardLayout>
+                  <DashboardLayout />
                 </ProtectedRoute>
               }
-            />
+            >
+              <Route index element={<DashboardHome />} />
+              <Route path="products" element={<Dashboard />} />
+              <Route path="customers" element={<Navigate to="/dashboard" />} />
+              <Route path="quotes" element={<Navigate to="/dashboard" />} />
+              <Route path="sales" element={<Navigate to="/dashboard" />} />
+              <Route path="reports" element={<Navigate to="/dashboard" />} />
+            </Route>
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
         <Footer />

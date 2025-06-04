@@ -1,9 +1,8 @@
 import { Fragment, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import {
   Bars3Icon,
-  XMarkIcon,
   HomeIcon,
   ShoppingBagIcon,
   UsersIcon,
@@ -23,11 +22,7 @@ const navigation = [
   { name: 'Reportes', href: '/dashboard/reports', icon: ChartPieIcon },
 ];
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -36,6 +31,34 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     await supabase.auth.signOut();
     navigate('/admin');
   };
+
+  const renderSidebarContent = () => (
+    <nav className="flex flex-1 flex-col">
+      <ul role="list" className="flex flex-1 flex-col gap-y-7">
+        <li>
+          <ul role="list" className="-mx-2 space-y-1">
+            {navigation.map((item) => (
+              <li key={item.name}>
+                <Link
+                  to={item.href}
+                  className={`
+                    group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6
+                    ${location.pathname === item.href
+                      ? 'bg-primary-700 text-white'
+                      : 'text-gray-200 hover:bg-primary-700 hover:text-white'
+                    }
+                  `}
+                >
+                  <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+                  {item.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </li>
+      </ul>
+    </nav>
+  );
 
   return (
     <div>
@@ -72,31 +95,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       alt="Mayand"
                     />
                   </div>
-                  <nav className="flex flex-1 flex-col">
-                    <ul role="list" className="flex flex-1 flex-col gap-y-7">
-                      <li>
-                        <ul role="list" className="-mx-2 space-y-1">
-                          {navigation.map((item) => (
-                            <li key={item.name}>
-                              <Link
-                                to={item.href}
-                                className={`
-                                  group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6
-                                  ${location.pathname === item.href
-                                    ? 'bg-primary-700 text-white'
-                                    : 'text-gray-200 hover:bg-primary-700 hover:text-white'
-                                  }
-                                `}
-                              >
-                                <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
-                                {item.name}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      </li>
-                    </ul>
-                  </nav>
+                  {renderSidebarContent()}
                 </div>
               </Dialog.Panel>
             </Transition.Child>
@@ -104,7 +103,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </Dialog>
       </Transition.Root>
 
-      {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-primary px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center justify-center">
@@ -114,31 +112,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               alt="Mayand"
             />
           </div>
-          <nav className="flex flex-1 flex-col">
-            <ul role="list" className="flex flex-1 flex-col gap-y-7">
-              <li>
-                <ul role="list" className="-mx-2 space-y-1">
-                  {navigation.map((item) => (
-                    <li key={item.name}>
-                      <Link
-                        to={item.href}
-                        className={`
-                          group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6
-                          ${location.pathname === item.href
-                            ? 'bg-primary-700 text-white'
-                            : 'text-gray-200 hover:bg-primary-700 hover:text-white'
-                          }
-                        `}
-                      >
-                        <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            </ul>
-          </nav>
+          {renderSidebarContent()}
         </div>
       </div>
 
@@ -168,7 +142,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <main className="py-10">
           <div className="px-4 sm:px-6 lg:px-8">
-            {children}
+            <Outlet />
           </div>
         </main>
       </div>
