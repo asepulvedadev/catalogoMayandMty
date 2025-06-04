@@ -37,11 +37,6 @@ const materials: { value: Material; label: string }[] = [
   { value: 'tela', label: 'Tela' }
 ];
 
-const sortOptions = [
-  { value: 'price', label: 'Precio' },
-  { value: 'name', label: 'Nombre' }
-];
-
 const Home = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { trackView, trackAction } = useTracking();
@@ -65,9 +60,6 @@ const Home = () => {
       updateFilters({ category: value === 'all' ? undefined : value as ProductCategory });
     } else if (type === 'material') {
       updateFilters({ material: value === 'all' ? undefined : value as Material });
-    } else if (type === 'sort') {
-      const [sortBy, sortDirection] = value.split('-');
-      updateFilters({ sortBy, sortDirection });
     }
   };
 
@@ -84,48 +76,54 @@ const Home = () => {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Filtros</h3>
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
-            <select
-              value={filters.category || 'all'}
-              onChange={(e) => handleFilterChange('category', e.target.value)}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
-            >
+            <h4 className="font-medium text-gray-700 mb-3">Categorías</h4>
+            <div className="space-y-2">
               {categories.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
+                <label key={value} className="flex items-center">
+                  <input
+                    type="radio"
+                    name="category"
+                    value={value}
+                    checked={value === (filters.category || 'all')}
+                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                    className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">{label}</span>
+                </label>
               ))}
-            </select>
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Material</label>
-            <select
-              value={filters.material || 'all'}
-              onChange={(e) => handleFilterChange('material', e.target.value)}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
-            >
-              <option value="all">Todos los materiales</option>
+            <h4 className="font-medium text-gray-700 mb-3">Materiales</h4>
+            <div className="space-y-2">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  name="material"
+                  value="all"
+                  checked={'all' === (filters.material || 'all')}
+                  onChange={(e) => handleFilterChange('material', e.target.value)}
+                  className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                />
+                <span className="ml-2 text-sm text-gray-700">Todos los materiales</span>
+              </label>
               {materials.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
+                <label key={value} className="flex items-center">
+                  <input
+                    type="radio"
+                    name="material"
+                    value={value}
+                    checked={value === filters.material}
+                    onChange={(e) => handleFilterChange('material', e.target.value)}
+                    className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">{label}</span>
+                </label>
               ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Ordenar por</label>
-            <select
-              value={`${filters.sortBy || 'price'}-${filters.sortDirection || 'desc'}`}
-              onChange={(e) => handleFilterChange('sort', e.target.value)}
-              className="w-full p-2 border rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
-            >
-              {sortOptions.map(({ value, label }) => (
-                <>
-                  <option key={`${value}-desc`} value={`${value}-desc`}>{label} (Mayor a menor)</option>
-                  <option key={`${value}-asc`} value={`${value}-asc`}>{label} (Menor a mayor)</option>
-                </>
-              ))}
-            </select>
+            </div>
           </div>
         </div>
       </div>
@@ -149,7 +147,7 @@ const Home = () => {
 
           <div className="flex-1">
             {/* Filtros para móvil y tablet */}
-            <div className="lg:hidden mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="lg:hidden mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
               <select
                 value={filters.category || 'all'}
                 onChange={(e) => handleFilterChange('category', e.target.value)}
@@ -168,19 +166,6 @@ const Home = () => {
                 <option value="all">Todos los materiales</option>
                 {materials.map(({ value, label }) => (
                   <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-
-              <select
-                value={`${filters.sortBy || 'price'}-${filters.sortDirection || 'desc'}`}
-                onChange={(e) => handleFilterChange('sort', e.target.value)}
-                className="p-2 border rounded-md focus:ring-2 focus:ring-primary focus:border-primary"
-              >
-                {sortOptions.map(({ value, label }) => (
-                  <>
-                    <option key={`${value}-desc`} value={`${value}-desc`}>{label} (Mayor a menor)</option>
-                    <option key={`${value}-asc`} value={`${value}-asc`}>{label} (Menor a mayor)</option>
-                  </>
                 ))}
               </select>
             </div>
