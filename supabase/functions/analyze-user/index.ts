@@ -22,17 +22,16 @@ Deno.serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       {
         auth: {
-          autoRefreshToken: false,
           persistSession: false,
         },
       }
     );
 
-    // Parse request body
-    const { userId }: RequestBody = await req.json();
+    // Get request body
+    const { userId } = await req.json() as RequestBody;
 
     if (!userId) {
       throw new Error('userId is required');
@@ -46,7 +45,7 @@ Deno.serve(async (req) => {
       .order('timestamp', { ascending: false })
       .limit(100);
 
-    if (!interactions?.length) {
+    if (!interactions || interactions.length === 0) {
       // Return default recommendations if no interactions
       return new Response(
         JSON.stringify({
@@ -54,81 +53,57 @@ Deno.serve(async (req) => {
             categories: ['office_supplies', 'geometric_shapes'],
             materials: ['mdf', 'acrilico'],
             price_range: [0, 1000],
-            interests: ['basic'],
+            interests: ['design', 'office'],
           },
-          ml_features: [0.5, 0.5, 0.5, 0.5, 0.5],
+          ml_features: [0.5, 0.5, 0.5, 0.5],
           recommendations: {
             categories: ['office_supplies', 'geometric_shapes'],
-            products: ['basic', 'popular'],
+            products: ['office', 'geometric', 'design'],
             explanation: 'Recomendaciones basadas en productos populares',
           },
         }),
         {
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
         }
       );
     }
 
-    // Get product details for interacted products
+    // Get products user interacted with
     const productIds = [...new Set(interactions.map(i => i.product_id))];
     const { data: products } = await supabaseClient
       .from('products')
       .select('*')
       .in('id', productIds);
 
-    // Calculate preferences
+    // Analyze user preferences
     const categories = products?.reduce((acc, p) => {
-      if (!acc[p.category]) acc[p.category] = 0;
-      acc[p.category]++;
+      if (p.category) acc.add(p.category);
       return acc;
-    }, {} as Record<string, number>) ?? {};
+    }, new Set<string>());
 
     const materials = products?.reduce((acc, p) => {
-      if (!acc[p.material]) acc[p.material] = 0;
-      acc[p.material]++;
+      if (p.material) acc.add(p.material);
       return acc;
-    }, {} as Record<string, number>) ?? {};
+    }, new Set<string>());
 
-    // Get top categories and materials
-    const topCategories = Object.entries(categories)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 3)
-      .map(([cat]) => cat);
-
-    const topMaterials = Object.entries(materials)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 2)
-      .map(([mat]) => mat);
-
-    // Calculate price range
-    const prices = products?.map(p => Number(p.unit_price)) ?? [];
+    const prices = products?.map(p => Number(p.unit_price)) || [];
     const minPrice = Math.min(...prices, 0);
     const maxPrice = Math.max(...prices, 1000);
 
-    // Generate simple ML features (placeholder)
-    const mlFeatures = [
-      Math.random(),
-      Math.random(),
-      Math.random(),
-      Math.random(),
-      Math.random(),
-    ];
-
+    // Generate recommendations
     const response = {
       preferences: {
-        categories: topCategories,
-        materials: topMaterials,
+        categories: Array.from(categories || []),
+        materials: Array.from(materials || []),
         price_range: [minPrice, maxPrice],
-        interests: ['personalized'],
+        interests: ['design', 'office'],
       },
-      ml_features: mlFeatures,
+      ml_features: [0.5, 0.5, 0.5, 0.5], // Simplified ML features
       recommendations: {
-        categories: topCategories,
-        products: productIds,
-        explanation: 'Recomendaciones basadas en tus interacciones previas',
+        categories: Array.from(categories || []).slice(0, 3),
+        products: products?.slice(0, 5).map(p => p.name) || [],
+        explanation: 'Recomendaciones basadas en tus interacciones recientes',
       },
     };
 
@@ -137,27 +112,25 @@ Deno.serve(async (req) => {
       .from('user_profiles')
       .upsert({
         user_id: userId,
-        preferences: response.preferences,
+        preferences: response,
         ml_features: response.ml_features,
         last_updated: new Date().toISOString(),
       });
 
-    return new Response(JSON.stringify(response), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    });
+    return new Response(
+      JSON.stringify(response),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error:', error.message);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
       }
     );
   }
