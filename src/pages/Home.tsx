@@ -4,6 +4,7 @@ import { useTracking } from '../hooks/useTracking';
 import type { Product, ProductCategory, Material } from '../types/product';
 import Header from '../components/Header';
 import ProductFeed from '../components/ProductFeed';
+import ImageSlider from '../components/ImageSlider';
 
 const categories = [
   { value: 'all', label: 'Todas las categorías' },
@@ -178,68 +179,62 @@ const Home = () => {
             />
           </div>
         </div>
-      </div>
 
-      {/* Product Modal */}
-      {selectedProduct && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="relative">
-              {selectedProduct.image_url && (
-                <img
-                  src={selectedProduct.image_url}
-                  alt={selectedProduct.name}
-                  className="w-full h-64 object-cover rounded-t-xl"
-                />
-              )}
-              <button
-                onClick={closeModal}
-                className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors duration-200"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">{selectedProduct.name}</h2>
-              <p className="text-gray-600 mb-4">{selectedProduct.description}</p>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm text-gray-500">Material</p>
-                  <p className="font-semibold text-gray-800">{selectedProduct.material.toUpperCase()}</p>
-                </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm text-gray-500">Dimensiones</p>
-                  <p className="font-semibold text-gray-800">{selectedProduct.width} x {selectedProduct.height} cm</p>
-                </div>
+        {/* Product Modal */}
+        {selectedProduct && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="relative p-6">
+                <ImageSlider images={selectedProduct.images} />
+                <button
+                  onClick={closeModal}
+                  className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors duration-200"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <div className="flex justify-between items-center mt-6">
-                <div>
-                  <p className="text-sm text-gray-500">Precio unitario</p>
-                  <p className="text-2xl font-bold text-primary">MXN ${selectedProduct.unit_price}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">Precio mayoreo</p>
-                  <p className="text-xl font-semibold text-gray-800">MXN ${selectedProduct.bulk_price}</p>
-                </div>
-              </div>
-              {selectedProduct.keywords && selectedProduct.keywords.length > 0 && (
-                <div className="mt-6">
-                  <p className="text-sm text-gray-500 mb-2">Etiquetas:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedProduct.keywords.map((keyword, index) => (
-                      <span key={index} className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
-                        {keyword}
-                      </span>
-                    ))}
+              <div className="p-6 pt-0">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">{selectedProduct.name}</h2>
+                <p className="text-gray-600 mb-4">{selectedProduct.description}</p>
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-sm text-gray-500">Material</p>
+                    <p className="font-semibold text-gray-800">{selectedProduct.material.toUpperCase()}</p>
+                  </div>
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-sm text-gray-500">Dimensiones</p>
+                    <p className="font-semibold text-gray-800">{selectedProduct.width} x {selectedProduct.height} cm</p>
                   </div>
                 </div>
-              )}
+                <div className="flex justify-between items-center mt-6">
+                  <div>
+                    <p className="text-sm text-gray-500">Precio unitario</p>
+                    <p className="text-2xl font-bold text-primary">MXN ${selectedProduct.unit_price}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Precio mayoreo</p>
+                    <p className="text-xl font-semibold text-gray-800">MXN ${selectedProduct.bulk_price}</p>
+                  </div>
+                </div>
+                {selectedProduct.keywords && selectedProduct.keywords.length > 0 && (
+                  <div className="mt-6">
+                    <p className="text-sm text-gray-500 mb-2">Etiquetas:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedProduct.keywords.map((keyword, index) => (
+                        <span key={index} className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 };
