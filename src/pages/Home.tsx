@@ -73,57 +73,49 @@ const Home = () => {
   };
 
   const FiltersSection = () => (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Filtros</h3>
-        <div className="space-y-6">
-          <div>
-            <h4 className="font-medium text-gray-700 mb-3">Categorías</h4>
-            <div className="space-y-2">
-              {categories.map(({ value, label }) => (
-                <label key={value} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="category"
-                    value={value}
-                    checked={value === (filters.category || 'all')}
-                    onChange={(e) => handleFilterChange('category', e.target.value)}
-                    className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+    <div className="bg-white p-6 rounded-lg shadow-sm">
+      <h3 className="text-lg font-medium text-gray-900 mb-6">Filtros</h3>
+      <div className="space-y-6">
+        <div>
+          <h4 className="font-medium text-gray-700 mb-3">Categoría</h4>
+          <select
+            value={filters.category || 'all'}
+            onChange={(e) => handleFilterChange('category', e.target.value)}
+            className="w-full p-2 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary focus:border-primary text-sm"
+          >
+            {categories.map(({ value, label }) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
 
-          <div>
-            <h4 className="font-medium text-gray-700 mb-3">Materiales</h4>
-            <div className="space-y-2">
-              <label className="flex items-center">
+        <div>
+          <h4 className="font-medium text-gray-700 mb-3">Material</h4>
+          <div className="space-y-3">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="material"
+                value="all"
+                checked={'all' === (filters.material || 'all')}
+                onChange={(e) => handleFilterChange('material', e.target.value)}
+                className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
+              />
+              <span className="ml-2 text-sm text-gray-700">Todos los materiales</span>
+            </label>
+            {materials.map(({ value, label }) => (
+              <label key={value} className="flex items-center">
                 <input
                   type="radio"
                   name="material"
-                  value="all"
-                  checked={'all' === (filters.material || 'all')}
+                  value={value}
+                  checked={value === filters.material}
                   onChange={(e) => handleFilterChange('material', e.target.value)}
                   className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
                 />
-                <span className="ml-2 text-sm text-gray-700">Todos los materiales</span>
+                <span className="ml-2 text-sm text-gray-700">{label}</span>
               </label>
-              {materials.map(({ value, label }) => (
-                <label key={value} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="material"
-                    value={value}
-                    checked={value === filters.material}
-                    onChange={(e) => handleFilterChange('material', e.target.value)}
-                    className="h-4 w-4 text-primary border-gray-300 focus:ring-primary"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{label}</span>
-                </label>
-              ))}
-            </div>
+            ))}
           </div>
         </div>
       </div>
