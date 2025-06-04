@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/webp'];
+const BUCKET_NAME = 'products';
 
 export const validateImage = (file: File): string | null => {
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
@@ -26,22 +27,11 @@ export const uploadImage = async (file: File): Promise<string | null> => {
 
     const fileExt = file.type === 'image/jpeg' ? 'jpg' : 'webp';
     const fileName = `${uuidv4()}.${fileExt}`;
-    const filePath = `product-images/${fileName}`;
-
-    // Check if the bucket exists, if not create it
-    const { data: buckets } = await supabase.storage.listBuckets();
-    if (!buckets?.find(bucket => bucket.name === 'products')) {
-      const { error: createError } = await supabase.storage.createBucket('products', {
-        public: true,
-        allowedMimeTypes: ALLOWED_MIME_TYPES,
-        fileSizeLimit: MAX_FILE_SIZE
-      });
-      if (createError) throw createError;
-    }
+    const filePath = fileName;
 
     // Upload the file
-    const { error: uploadError } = await supabase.storage
-      .from('products')
+    const { error: uploadError, data } = await supabase.storage
+      .from(BUCKET_NAME)
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false
@@ -51,29 +41,31 @@ export const uploadImage = async (file: File): Promise<string | null> => {
 
     // Get the public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('products')
+      .from(BUCKET_NAME)
       .getPublicUrl(filePath);
 
     return publicUrl;
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error('Error al subir imagen:', error);
+    alert('Error al subir la imagen. Por favor, intenta de nuevo.');
     return null;
   }
 };
 
 export const deleteImage = async (url: string): Promise<boolean> => {
   try {
-    const path = url.split('/').pop();
-    if (!path) return false;
+    const fileName = url.split('/').pop();
+    if (!fileName) return false;
 
     const { error } = await supabase.storage
-      .from('products')
-      .remove([`product-images/${path}`]);
+      .from(BUCKET_NAME)
+      .remove([fileName]);
 
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Error deleting image:', error);
+    console.error('Error al eliminar imagen:', error);
+    alert('Error al eliminar la imagen. Por favor, intenta de nuevo.');
     return false;
   }
 };
