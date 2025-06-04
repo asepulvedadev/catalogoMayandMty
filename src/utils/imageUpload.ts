@@ -24,17 +24,6 @@ export const uploadImage = async (file: File): Promise<string | null> => {
       throw new Error(validationError);
     }
 
-    // Verificar si el bucket existe
-    const { data: buckets } = await supabase.storage.listBuckets();
-    if (!buckets?.find(bucket => bucket.name === BUCKET_NAME)) {
-      const { error: createError } = await supabase.storage.createBucket(BUCKET_NAME, {
-        public: true,
-        allowedMimeTypes: ALLOWED_MIME_TYPES,
-        fileSizeLimit: MAX_FILE_SIZE
-      });
-      if (createError) throw createError;
-    }
-
     // Procesar la imagen antes de subirla
     let processedFile = file;
     try {
