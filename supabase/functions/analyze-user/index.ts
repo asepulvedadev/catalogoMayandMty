@@ -7,44 +7,45 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-// Initialize clients outside request handler
+// Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL');
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-const openaiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Validate environment variables
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables');
+  throw new Error('Required environment variables are not set');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Only initialize OpenAI if key is present
-let openai: OpenAIApi | null = null;
-if (openaiKey) {
-  openai = new OpenAIApi(new Configuration({
-    apiKey: openaiKey,
-  }));
-}
+// Initialize OpenAI client if API key is available
+const openaiKey = Deno.env.get('OPENAI_API_KEY');
+const openai = openaiKey ? new OpenAIApi(new Configuration({ apiKey: openaiKey })) : null;
 
 Deno.serve(async (req) => {
-  // Handle CORS
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { userId } = await req.json();
+    // Validate request method
+    if (req.method !== 'POST') {
+      throw new Error('Method not allowed');
+    }
 
+    // Parse and validate request body
+    const { userId } = await req.json();
     if (!userId) {
-      throw new Error('User ID is required');
+      throw new Error('userId is required');
     }
 
     // Get user interactions
     const { data: interactions, error: interactionsError } = await supabase
       .from('user_interactions')
       .select(`
-        *,
+        action,
+        duration_seconds,
+        timestamp,
         products (
           name,
           description,
@@ -56,18 +57,14 @@ Deno.serve(async (req) => {
       `)
       .eq('user_id', userId)
       .order('timestamp', { ascending: false })
-      .limit(100);
+      .limit(50);
 
     if (interactionsError) {
       throw new Error(`Failed to fetch interactions: ${interactionsError.message}`);
     }
 
-    if (!interactions?.length) {
-      throw new Error('No hay suficientes interacciones para analizar');
-    }
-
-    // If OpenAI is not configured, return basic analysis
-    if (!openai) {
+    // Generate basic analysis if no OpenAI or not enough data
+    if (!openai || !interactions?.length) {
       const basicAnalysis = {
         preferences: {
           categories: [],
@@ -79,91 +76,90 @@ Deno.serve(async (req) => {
         recommendations: {
           categories: [],
           products: [],
-          explanation: "Análisis no disponible - OpenAI no está configurado"
+          explanation: "No hay suficientes datos para generar recomendaciones personalizadas."
         }
       };
 
+      // Update user profile with basic analysis
       await supabase.from('user_profiles').upsert({
         user_id: userId,
         preferences: basicAnalysis.preferences,
         ml_features: basicAnalysis.ml_features,
-        last_updated: new Date().toISOString(),
+        last_updated: new Date().toISOString()
       });
 
-      return new Response(JSON.stringify(basicAnalysis), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      return new Response(
+        JSON.stringify(basicAnalysis),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Prepare data for OpenAI
+    // Prepare data for OpenAI analysis
     const userBehavior = interactions.map(i => ({
       action: i.action,
       duration: i.duration_seconds,
       product: i.products,
-      timestamp: i.timestamp,
+      timestamp: i.timestamp
     }));
 
-    // OpenAI prompt
-    const prompt = `
-    Analiza el comportamiento de este usuario basado en sus ${interactions.length} interacciones:
-    ${JSON.stringify(userBehavior, null, 2)}
-
-    Genera un perfil detallado del usuario y recomendaciones en formato JSON con:
-    {
-      "preferences": {
-        "categories": ["top 3 categorías preferidas"],
-        "materials": ["materiales preferidos"],
-        "price_range": [precio mínimo, precio máximo],
-        "interests": ["palabras clave de interés"]
-      },
-      "ml_features": [10 números entre 0-1 representando afinidad con diferentes aspectos],
-      "recommendations": {
-        "categories": ["categorías recomendadas"],
-        "products": ["tipos de productos sugeridos"],
-        "explanation": "explicación en español de las recomendaciones"
-      }
-    }
-
-    Asegúrate de que:
-    1. Las categorías y materiales existan en el sistema
-    2. Los precios sean realistas basados en las interacciones
-    3. Las palabras clave sean relevantes para búsquedas futuras
-    4. Los ml_features representen: precio (2), tamaño (2), complejidad (2), estilo (2), uso (2)
-    `;
-
-    // Call OpenAI
+    // Generate OpenAI analysis
     const completion = await openai.createChatCompletion({
       model: 'gpt-4',
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{
+        role: 'user',
+        content: `Analiza estas ${interactions.length} interacciones de usuario:
+          ${JSON.stringify(userBehavior, null, 2)}
+          
+          Genera un perfil detallado y recomendaciones en formato JSON:
+          {
+            "preferences": {
+              "categories": ["3 categorías preferidas"],
+              "materials": ["materiales preferidos"],
+              "price_range": [min, max],
+              "interests": ["palabras clave"]
+            },
+            "ml_features": [10 valores 0-1],
+            "recommendations": {
+              "categories": ["categorías sugeridas"],
+              "products": ["productos sugeridos"],
+              "explanation": "explicación en español"
+            }
+          }
+          
+          Notas:
+          - Usa solo categorías y materiales existentes
+          - Precios realistas basados en interacciones
+          - Keywords relevantes para búsquedas
+          - ml_features: precio(2), tamaño(2), complejidad(2), estilo(2), uso(2)`
+      }],
       temperature: 0.3,
-      max_tokens: 1000,
+      max_tokens: 1000
     });
 
     const analysis = JSON.parse(completion.data.choices[0].message.content);
 
     // Update user profile
-    const { error: updateError } = await supabase.from('user_profiles').upsert({
+    await supabase.from('user_profiles').upsert({
       user_id: userId,
       preferences: analysis.preferences,
       ml_features: analysis.ml_features,
-      last_updated: new Date().toISOString(),
+      last_updated: new Date().toISOString()
     });
 
-    if (updateError) {
-      throw new Error(`Failed to update user profile: ${updateError.message}`);
-    }
-
-    return new Response(JSON.stringify(analysis), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  } catch (error) {
-    console.error('Error:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        details: error.toString()
-      }), 
-      {
+      JSON.stringify(analysis),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('Error in analyze-user function:', error);
+
+    return new Response(
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        status: 500
+      }),
+      { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
