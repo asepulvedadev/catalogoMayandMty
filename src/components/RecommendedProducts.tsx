@@ -7,7 +7,7 @@ interface RecommendedProductsProps {
 }
 
 export default function RecommendedProducts({ onProductClick }: RecommendedProductsProps) {
-  const { recommendations, products, loading, error } = useRecommendations();
+  const { products, loading, error } = useRecommendations();
   const { trackView } = useTracking();
 
   if (loading) {
@@ -27,34 +27,13 @@ export default function RecommendedProducts({ onProductClick }: RecommendedProdu
     );
   }
 
-  if (error) {
-    return null;
-  }
-
-  if (!recommendations || products.length === 0) {
+  if (error || !products.length) {
     return null;
   }
 
   return (
     <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">Recomendados para ti</h2>
-        <div className="flex gap-2">
-          {recommendations.preferences.categories.map((category, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
-            >
-              {category}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <p className="text-sm text-gray-600 mb-4">
-        {recommendations.recommendations.explanation}
-      </p>
-
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Productos Destacados</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {products.map((product) => (
           <div

@@ -2,23 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Product } from '../types/product';
 
-interface RecommendationResponse {
-  preferences: {
-    categories: string[];
-    materials: string[];
-    price_range: [number, number];
-    interests: string[];
-  };
-  ml_features: number[];
-  recommendations: {
-    categories: string[];
-    products: string[];
-    explanation: string;
-  };
-}
-
 export function useRecommendations() {
-  const [recommendations, setRecommendations] = useState<RecommendationResponse | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,59 +11,42 @@ export function useRecommendations() {
     const loadRecommendations = async () => {
       try {
         setLoading(true);
-        setError(null);
+        
+        // Obtener productos más vistos/interactuados
+        const { data: interactions } = await supabase
+          .from('user_interactions')
+          .select('product_id, count')
+          .order('count', { ascending: false })
+          .limit(8);
 
-        // Obtener usuario actual
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setLoading(false);
-          return;
-        }
+        if (interactions?.length) {
+          const productIds = interactions.map(i => i.product_id);
+          
+          const { data: recommendedProducts } = await supabase
+            .from('products')
+            .select('*')
+            .in('id', productIds)
+            .limit(8);
 
-        // Obtener perfil existente - usando maybeSingle() en lugar de single()
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        // Si no hay perfil o está desactualizado, generar uno nuevo
-        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-        if (!profile || profile.last_updated < oneHourAgo) {
-          const { data: analysis } = await supabase.functions.invoke<RecommendationResponse>(
-            'analyze-user',
-            { body: { userId: user.id } }
-          );
-
-          if (analysis) {
-            setRecommendations(analysis);
-
-            // Buscar productos recomendados
-            const { data: recommendedProducts } = await supabase
-              .rpc('search_products', {
-                search_query: analysis.recommendations.products.join(' '),
-                category_filter: null,
-                material_filter: null,
-                min_price: analysis.preferences.price_range[0],
-                max_price: analysis.preferences.price_range[1],
-                sort_by: 'relevance',
-                sort_direction: 'desc',
-                p_limit: 12,
-                p_offset: 0
-              });
-
-            if (recommendedProducts) {
-              setProducts(recommendedProducts);
-            }
+          if (recommendedProducts) {
+            setProducts(recommendedProducts);
           }
         } else {
-          setRecommendations(profile.preferences);
-        }
+          // Si no hay interacciones, mostrar productos recientes
+          const { data: recentProducts } = await supabase
+            .from('products')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(8);
 
-        setLoading(false);
+          if (recentProducts) {
+            setProducts(recentProducts);
+          }
+        }
       } catch (err) {
         console.error('Error loading recommendations:', err);
         setError(err instanceof Error ? err.message : 'Error al cargar recomendaciones');
+      } finally {
         setLoading(false);
       }
     };
@@ -88,7 +55,6 @@ export function useRecommendations() {
   }, []);
 
   return {
-    recommendations,
     products,
     loading,
     error
