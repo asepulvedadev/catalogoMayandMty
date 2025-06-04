@@ -223,7 +223,7 @@ const Dashboard = () => {
 
   const handleKeywordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k !== '');
-    setCurrentProduct({ ...prev => ({ ...prev, keywords }));
+    setCurrentProduct(prev => ({ ...prev, keywords }));
   };
 
   if (loading && products.length === 0) {
