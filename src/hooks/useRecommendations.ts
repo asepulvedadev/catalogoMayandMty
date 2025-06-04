@@ -36,12 +36,12 @@ export function useRecommendations() {
           return;
         }
 
-        // Obtener perfil existente
+        // Obtener perfil existente - usando maybeSingle() en lugar de single()
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         // Si no hay perfil o está desactualizado, generar uno nuevo
         const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
