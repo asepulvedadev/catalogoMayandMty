@@ -51,25 +51,25 @@ const ProductFeed = ({ products, loading, onProductClick, onLoadMore, hasMore }:
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
       {products.map((product, index) => (
         <div
           key={product.id}
           ref={index === products.length - 1 ? lastProductRef : null}
           className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transform transition-all duration-300 hover:scale-102 hover:shadow-2xl backdrop-blur-sm"
         >
-          <div className="relative pb-[100%] bg-gray-100 overflow-hidden group">
+          <div className="relative aspect-square bg-gray-100 overflow-hidden group">
             <Swiper
               modules={[Navigation]}
               navigation
-              className="absolute inset-0"
+              className="absolute inset-0 h-full"
             >
               {product.images.map((image, imageIndex) => (
-                <SwiperSlide key={imageIndex}>
+                <SwiperSlide key={imageIndex} className="h-full">
                   <img
                     src={image}
                     alt={`${product.name} - Vista ${imageIndex + 1}`}
-                    className="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-110 group-hover:rotate-1"
+                    className="w-full h-full object-cover transition-all duration-500 group-hover:scale-110 group-hover:rotate-1"
                     loading="lazy"
                   />
                 </SwiperSlide>
@@ -82,7 +82,7 @@ const ProductFeed = ({ products, loading, onProductClick, onLoadMore, hasMore }:
             />
             <button 
               onClick={() => onProductClick(product)}
-              className="absolute top-2 right-2 bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-colors duration-300 transform hover:scale-110 z-10"
+              className="absolute top-2 right-2 bg-green-500 text-white p-2 rounded-full hover:bg-green-600 transition-colors duration-300 transform hover:scale-110 z-20"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

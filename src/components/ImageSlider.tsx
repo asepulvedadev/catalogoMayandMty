@@ -25,7 +25,7 @@ const ImageSlider = ({ images, onImageClick }: ImageSliderProps) => {
         className="rounded-lg overflow-hidden aspect-square"
       >
         {images.map((image, index) => (
-          <SwiperSlide key={index}>
+          <SwiperSlide key={index} className="aspect-square">
             <img
               src={image}
               alt={`Vista ${index + 1}`}
@@ -39,14 +39,28 @@ const ImageSlider = ({ images, onImageClick }: ImageSliderProps) => {
       <Swiper
         onSwiper={setThumbsSwiper}
         spaceBetween={10}
-        slidesPerView={4}
+        slidesPerView="auto"
         watchSlidesProgress
         modules={[Navigation, Thumbs]}
         className="thumbs-swiper"
+        breakpoints={{
+          320: {
+            slidesPerView: 3,
+            spaceBetween: 5,
+          },
+          480: {
+            slidesPerView: 4,
+            spaceBetween: 8,
+          },
+          640: {
+            slidesPerView: 4,
+            spaceBetween: 10,
+          }
+        }}
       >
         {images.map((image, index) => (
-          <SwiperSlide key={index}>
-            <div className="aspect-square rounded-md overflow-hidden">
+          <SwiperSlide key={index} style={{ width: 'auto' }}>
+            <div className="aspect-square rounded-md overflow-hidden w-20 sm:w-24">
               <img
                 src={image}
                 alt={`Miniatura ${index + 1}`}
