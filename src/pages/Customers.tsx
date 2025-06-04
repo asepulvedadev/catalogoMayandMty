@@ -50,6 +50,12 @@ export default function Customers() {
     setSuccess(null);
 
     try {
+      // Get the current user's ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+
       if (isEditing && currentCustomer.id) {
         const { error: updateError } = await supabase
           .from('customers')
@@ -59,9 +65,10 @@ export default function Customers() {
         if (updateError) throw updateError;
         setSuccess('Cliente actualizado exitosamente');
       } else {
+        // Add created_by field when creating a new customer
         const { error: insertError } = await supabase
           .from('customers')
-          .insert([currentCustomer]);
+          .insert([{ ...currentCustomer, created_by: user.id }]);
 
         if (insertError) throw insertError;
         setSuccess('Cliente creado exitosamente');
