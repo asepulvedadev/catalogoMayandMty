@@ -56,8 +56,7 @@ const ProductFeed = ({ products, loading, onProductClick, onLoadMore, hasMore }:
         <div
           key={product.id}
           ref={index === products.length - 1 ? lastProductRef : null}
-          className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transform transition-all duration-300 hover:scale-102 hover:shadow-2xl backdrop-blur-sm cursor-pointer"
-          onClick={() => onProductClick(product)}
+          className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 transform transition-all duration-300 hover:scale-102 hover:shadow-2xl backdrop-blur-sm"
         >
           <div className="relative aspect-square bg-gray-100 overflow-hidden group">
             <Swiper

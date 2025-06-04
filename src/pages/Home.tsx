@@ -5,6 +5,7 @@ import type { Product, ProductCategory, Material } from '../types/product';
 import Header from '../components/Header';
 import ProductFeed from '../components/ProductFeed';
 import ImageSlider from '../components/ImageSlider';
+import { PlusIcon } from '@heroicons/react/24/outline';
 
 const categories = [
   { value: 'all', label: 'Todas las categorías' },
@@ -173,12 +174,20 @@ const Home = () => {
             <ProductFeed
               products={products}
               loading={loading}
-              onProductClick={openModal}
+              onProductClick={() => {}}
               onLoadMore={loadMore}
               hasMore={true}
             />
           </div>
         </div>
+
+        {/* Botón flotante */}
+        <button
+          onClick={() => selectedProduct ? closeModal() : null}
+          className="fixed bottom-8 right-8 bg-primary hover:bg-primary-700 text-white rounded-full p-4 shadow-lg transition-all duration-300 z-40"
+        >
+          <PlusIcon className="h-6 w-6" />
+        </button>
 
         {/* Product Modal */}
         {selectedProduct && (
