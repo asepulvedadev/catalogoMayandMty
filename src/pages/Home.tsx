@@ -183,47 +183,49 @@ const Home = () => {
         {/* Product Modal */}
         {selectedProduct && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="relative p-6">
-                <ImageSlider images={selectedProduct.images} />
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <div className="relative p-4 sm:p-6">
                 <button
                   onClick={closeModal}
-                  className="absolute top-4 right-4 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors duration-200"
+                  className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100 transition-colors duration-200 z-50"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
+                <div className="max-w-2xl mx-auto">
+                  <ImageSlider images={selectedProduct.images} />
+                </div>
               </div>
-              <div className="p-6 pt-0">
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">{selectedProduct.name}</h2>
-                <p className="text-gray-600 mb-4">{selectedProduct.description}</p>
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-500">Material</p>
-                    <p className="font-semibold text-gray-800">{selectedProduct.material.toUpperCase()}</p>
+              <div className="p-4 sm:p-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">{selectedProduct.name}</h2>
+                <p className="text-gray-600 mb-4 text-sm sm:text-base">{selectedProduct.description}</p>
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4">
+                  <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
+                    <p className="text-xs sm:text-sm text-gray-500">Material</p>
+                    <p className="font-semibold text-gray-800 text-sm sm:text-base">{selectedProduct.material.toUpperCase()}</p>
                   </div>
-                  <div className="bg-gray-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-500">Dimensiones</p>
-                    <p className="font-semibold text-gray-800">{selectedProduct.width} x {selectedProduct.height} cm</p>
+                  <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
+                    <p className="text-xs sm:text-sm text-gray-500">Dimensiones</p>
+                    <p className="font-semibold text-gray-800 text-sm sm:text-base">{selectedProduct.width} x {selectedProduct.height} cm</p>
                   </div>
                 </div>
-                <div className="flex justify-between items-center mt-6">
+                <div className="flex justify-between items-center mt-4 sm:mt-6">
                   <div>
-                    <p className="text-sm text-gray-500">Precio unitario</p>
-                    <p className="text-2xl font-bold text-primary">MXN ${selectedProduct.unit_price}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Precio unitario</p>
+                    <p className="text-xl sm:text-2xl font-bold text-primary">MXN ${selectedProduct.unit_price}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-500">Precio mayoreo</p>
-                    <p className="text-xl font-semibold text-gray-800">MXN ${selectedProduct.bulk_price}</p>
+                    <p className="text-xs sm:text-sm text-gray-500">Precio mayoreo</p>
+                    <p className="text-lg sm:text-xl font-semibold text-gray-800">MXN ${selectedProduct.bulk_price}</p>
                   </div>
                 </div>
                 {selectedProduct.keywords && selectedProduct.keywords.length > 0 && (
-                  <div className="mt-6">
-                    <p className="text-sm text-gray-500 mb-2">Etiquetas:</p>
+                  <div className="mt-4 sm:mt-6">
+                    <p className="text-xs sm:text-sm text-gray-500 mb-2">Etiquetas:</p>
                     <div className="flex flex-wrap gap-2">
                       {selectedProduct.keywords.map((keyword, index) => (
-                        <span key={index} className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm">
+                        <span key={index} className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs sm:text-sm">
                           {keyword}
                         </span>
                       ))}
