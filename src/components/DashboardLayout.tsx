@@ -12,6 +12,7 @@ import {
   CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
 import { supabase } from '../lib/supabase';
+import logo from '../assets/logo_mayand.png';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
@@ -67,7 +68,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <div className="flex h-16 shrink-0 items-center justify-center">
                     <img
                       className="h-8 w-auto"
-                      src="/src/assets/logo_mayand.png"
+                      src={logo}
                       alt="Mayand"
                     />
                   </div>
@@ -109,7 +110,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="flex h-16 shrink-0 items-center justify-center">
             <img
               className="h-8 w-auto"
-              src="/src/assets/logo_mayand.png"
+              src={logo}
               alt="Mayand"
             />
           </div>

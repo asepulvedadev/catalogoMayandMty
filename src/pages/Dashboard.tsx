@@ -4,12 +4,16 @@ import { supabase } from '../lib/supabase';
 import { uploadImage, deleteImage } from '../utils/imageUpload';
 import type { Product, ProductFormState, Material, ProductCategory } from '../types/product';
 
+const PRODUCTS_PER_PAGE = 12;
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
   const [currentProduct, setCurrentProduct] = useState<ProductFormState>({
     name: '',
     description: null,
@@ -49,8 +53,11 @@ const Dashboard = () => {
 
   useEffect(() => {
     checkUser();
-    loadProducts();
   }, []);
+
+  useEffect(() => {
+    loadProducts();
+  }, [page]);
 
   const checkUser = async () => {
     try {
@@ -66,9 +73,10 @@ const Dashboard = () => {
   };
 
   const loadProducts = async () => {
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('products')
-      .select('*')
+      .select('*', { count: 'exact' })
+      .range(page * PRODUCTS_PER_PAGE, (page + 1) * PRODUCTS_PER_PAGE - 1)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -76,7 +84,10 @@ const Dashboard = () => {
       return;
     }
 
-    setProducts(data || []);
+    if (data) {
+      setProducts(page === 0 ? data : [...products, ...data]);
+      setHasMore(count ? (page + 1) * PRODUCTS_PER_PAGE < count : false);
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,6 +167,7 @@ const Dashboard = () => {
       keywords: [],
       images: []
     });
+    setPage(0);
     loadProducts();
   };
 
@@ -195,6 +207,7 @@ const Dashboard = () => {
       return;
     }
 
+    setPage(0);
     loadProducts();
   };
 
@@ -203,8 +216,18 @@ const Dashboard = () => {
     setCurrentProduct({ ...currentProduct, keywords });
   };
 
+  const loadMore = () => {
+    if (hasMore && !loading) {
+      setPage(prev => prev + 1);
+    }
+  };
+
   if (loading) {
-    return <div>Cargando...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
   return (
@@ -420,6 +443,7 @@ const Dashboard = () => {
                       src={product.image_url}
                       alt={product.name}
                       className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                   )}
                 </div>
@@ -453,6 +477,17 @@ const Dashboard = () => {
               </div>
             ))}
           </div>
+
+          {hasMore && (
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={loadMore}
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-700 transition-colors"
+              >
+                Cargar más productos
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
