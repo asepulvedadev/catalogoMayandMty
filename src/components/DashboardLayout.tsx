@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             >
               <Dialog.Panel className="relative mr-16 flex w-full max-w-xs flex-1">
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-primary px-6 pb-4">
-                  <div className="flex h-16 shrink-0 items-center">
+                  <div className="flex h-16 shrink-0 items-center justify-center">
                     <img
                       className="h-8 w-auto"
                       src="/src/assets/logo_mayand.png"
@@ -80,7 +80,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                               <Link
                                 to={item.href}
                                 className={`
-                                  group flex gap-x-3 rounded-md p-2 text-sm leading-6
+                                  group flex gap-x-3 rounded-md p-2 text-sm leading-6 justify-center items-center
                                   ${location.pathname === item.href
                                     ? 'bg-primary-700 text-white'
                                     : 'text-gray-200 hover:bg-primary-700 hover:text-white'
@@ -106,7 +106,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-primary px-6 pb-4">
-          <div className="flex h-16 shrink-0 items-center">
+          <div className="flex h-16 shrink-0 items-center justify-center">
             <img
               className="h-8 w-auto"
               src="/src/assets/logo_mayand.png"
@@ -122,7 +122,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       <Link
                         to={item.href}
                         className={`
-                          group flex gap-x-3 rounded-md p-2 text-sm leading-6
+                          group flex gap-x-3 rounded-md p-2 text-sm leading-6 justify-center items-center
                           ${location.pathname === item.href
                             ? 'bg-primary-700 text-white'
                             : 'text-gray-200 hover:bg-primary-700 hover:text-white'
