@@ -6,140 +6,109 @@ import type { Product, ProductCategory, Material } from '../types/product';
 interface SearchFilters {
   category?: ProductCategory;
   material?: Material;
-  minPrice?: number;
-  maxPrice?: number;
-  sortBy?: string;
-  sortDirection?: 'asc' | 'desc';
 }
 
 interface SearchState {
   products: Product[];
   loading: boolean;
   error: string | null;
-  totalCount: number;
 }
 
-interface CacheEntry {
-  products: Product[];
-  totalCount: number;
-  timestamp: number;
-}
-
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const ITEMS_PER_PAGE = 12;
 
 export function useSearch(initialFilters?: SearchFilters) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<SearchFilters>(initialFilters || {});
-  const [page, setPage] = useState(0);
   const [state, setState] = useState<SearchState>({
     products: [],
     loading: false,
     error: null,
-    totalCount: 0,
   });
-
-  const cache = useRef<Map<string, CacheEntry>>(new Map());
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
   const debouncedSearchTerm = useDebounce(searchTerm);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const getCacheKey = useCallback(() => {
-    return JSON.stringify({
-      term: debouncedSearchTerm,
-      filters,
-      page,
-    });
-  }, [debouncedSearchTerm, filters, page]);
-
-  const getCachedData = useCallback(() => {
-    const key = getCacheKey();
-    const cached = cache.current.get(key);
-    if (!cached) return null;
-    
-    if (Date.now() - cached.timestamp > CACHE_DURATION) {
-      cache.current.delete(key);
-      return null;
+  const searchProducts = useCallback(async (isLoadMore: boolean = false) => {
+    // Cancelar la búsqueda anterior si existe
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
-    
-    return cached;
-  }, [getCacheKey]);
+    abortControllerRef.current = new AbortController();
 
-  const setCachedData = useCallback((data: Omit<CacheEntry, 'timestamp'>) => {
-    const key = getCacheKey();
-    cache.current.set(key, { ...data, timestamp: Date.now() });
-  }, [getCacheKey]);
-
-  const searchProducts = useCallback(async () => {
-    const cachedData = getCachedData();
-    if (cachedData) {
-      setState({
-        products: cachedData.products,
-        loading: false,
-        error: null,
-        totalCount: cachedData.totalCount,
-      });
-      return;
+    if (!isLoadMore) {
+      setState(prev => ({ ...prev, loading: true }));
     }
-
-    setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const { data, error, count } = await supabase
+      const currentOffset = isLoadMore ? offset : 0;
+      
+      const { data, error } = await supabase
         .rpc('search_products', {
           search_query: debouncedSearchTerm || null,
           category_filter: filters.category,
           material_filter: filters.material,
-          min_price: filters.minPrice,
-          max_price: filters.maxPrice,
-          sort_by: filters.sortBy || 'relevance',
-          sort_direction: filters.sortDirection || 'desc',
           p_limit: ITEMS_PER_PAGE,
-          p_offset: page * ITEMS_PER_PAGE,
+          p_offset: currentOffset
         });
 
       if (error) throw error;
 
-      const newState = {
-        products: data || [],
-        totalCount: count || 0,
-      };
+      if (!isLoadMore) {
+        setState({
+          products: data || [],
+          loading: false,
+          error: null
+        });
+      } else {
+        setState(prev => ({
+          ...prev,
+          products: [...prev.products, ...(data || [])],
+          loading: false,
+          error: null
+        }));
+      }
 
-      setCachedData(newState);
-      setState({
-        ...newState,
-        loading: false,
-        error: null,
-      });
+      setHasMore((data?.length || 0) === ITEMS_PER_PAGE);
+      setOffset(currentOffset + ITEMS_PER_PAGE);
     } catch (error) {
       setState(prev => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : 'Error en la búsqueda',
+        error: error instanceof Error ? error.message : 'Error en la búsqueda'
       }));
     }
-  }, [debouncedSearchTerm, filters, page, getCachedData, setCachedData]);
+  }, [debouncedSearchTerm, filters, offset]);
 
   useEffect(() => {
+    setOffset(0);
     searchProducts();
-  }, [searchProducts]);
+    
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [debouncedSearchTerm, filters]);
 
   const updateFilters = (newFilters: Partial<SearchFilters>) => {
     setFilters(prev => ({ ...prev, ...newFilters }));
-    setPage(0);
+    setOffset(0);
   };
 
   const loadMore = useCallback(() => {
-    setPage(prev => prev + 1);
-  }, []);
+    if (!state.loading && hasMore) {
+      searchProducts(true);
+    }
+  }, [state.loading, hasMore, searchProducts]);
 
   return {
     searchTerm,
     setSearchTerm,
     filters,
     updateFilters,
-    page,
-    setPage,
     loadMore,
+    hasMore,
     ...state,
-    pageCount: Math.ceil(state.totalCount / ITEMS_PER_PAGE),
   };
 }
