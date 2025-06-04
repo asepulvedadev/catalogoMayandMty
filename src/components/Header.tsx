@@ -5,30 +5,15 @@ import logo from '../assets/logo_mayand.png';
 interface HeaderProps {
   searchTerm?: string;
   onSearch?: (term: string) => void;
-  currentPage?: number;
-  totalPages?: number;
-  onPageChange?: (page: number) => void;
 }
 
-const Header = ({ searchTerm = '', onSearch, currentPage = 0, totalPages = 0, onPageChange }: HeaderProps) => {
+const Header = ({ searchTerm = '', onSearch }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
   const isHome = location.pathname === '/';
-
-  const handlePrevPage = () => {
-    if (onPageChange && currentPage > 0) {
-      onPageChange(currentPage - 1);
-    }
-  };
-
-  const handleNextPage = () => {
-    if (onPageChange && currentPage < totalPages - 1) {
-      onPageChange(currentPage + 1);
-    }
-  };
 
   const toggleSearch = () => {
     setIsSearchVisible(!isSearchVisible);
@@ -44,25 +29,6 @@ const Header = ({ searchTerm = '', onSearch, currentPage = 0, totalPages = 0, on
           
           <div className="hidden md:flex md:items-center md:justify-between md:w-full md:ml-8">
             <div className="flex-1"></div>
-            {isHome && (
-              <div className="text-sm flex-1 text-center flex items-center justify-center gap-4">
-                {currentPage > 0 && (
-                  <button onClick={handlePrevPage} className="hover:text-gray-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                )}
-                <span>Página {currentPage + 1} de {totalPages}</span>
-                {currentPage < totalPages - 1 && (
-                  <button onClick={handleNextPage} className="hover:text-gray-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                )}
-              </div>
-            )}
             <div className="flex items-center space-x-4 flex-1 justify-end">
               {isHome && (
                 <div className="relative">
@@ -125,22 +91,6 @@ const Header = ({ searchTerm = '', onSearch, currentPage = 0, totalPages = 0, on
                   className="w-full p-2 text-gray-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
-            )}
-            {isHome && currentPage > 0 && (
-              <button
-                onClick={handlePrevPage}
-                className="block w-full text-left px-3 py-2 hover:bg-primary-700 rounded-md"
-              >
-                Página anterior
-              </button>
-            )}
-            {isHome && currentPage < totalPages - 1 && (
-              <button
-                onClick={handleNextPage}
-                className="block w-full text-left px-3 py-2 hover:bg-primary-700 rounded-md"
-              >
-                Página siguiente
-              </button>
             )}
             {!isHome && (
               <button
