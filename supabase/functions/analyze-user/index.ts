@@ -1,150 +1,164 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'npm:@supabase/supabase-js@2.39.3'
+import { createClient } from 'npm:@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-}
+};
 
 interface RequestBody {
-  userId: string
+  userId: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
       headers: corsHeaders,
-    })
+    });
   }
 
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
+    );
 
-    // Get the request body
-    const { userId } = await req.json() as RequestBody
+    // Parse request body
+    const { userId }: RequestBody = await req.json();
+
+    if (!userId) {
+      throw new Error('userId is required');
+    }
 
     // Get user interactions
     const { data: interactions } = await supabaseClient
       .from('user_interactions')
-      .select('action, product_id, duration_seconds')
+      .select('*')
       .eq('user_id', userId)
       .order('timestamp', { ascending: false })
-      .limit(50)
+      .limit(100);
+
+    if (!interactions?.length) {
+      // Return default recommendations if no interactions
+      return new Response(
+        JSON.stringify({
+          preferences: {
+            categories: ['office_supplies', 'geometric_shapes'],
+            materials: ['mdf', 'acrilico'],
+            price_range: [0, 1000],
+            interests: ['basic'],
+          },
+          ml_features: [0.5, 0.5, 0.5, 0.5, 0.5],
+          recommendations: {
+            categories: ['office_supplies', 'geometric_shapes'],
+            products: ['basic', 'popular'],
+            explanation: 'Recomendaciones basadas en productos populares',
+          },
+        }),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
 
     // Get product details for interacted products
-    const productIds = [...new Set(interactions?.map(i => i.product_id) || [])]
+    const productIds = [...new Set(interactions.map(i => i.product_id))];
     const { data: products } = await supabaseClient
       .from('products')
-      .select('id, category, material, unit_price, keywords')
-      .in('id', productIds)
+      .select('*')
+      .in('id', productIds);
 
-    // Simple analysis of user preferences
-    const preferences = {
-      categories: [] as string[],
-      materials: [] as string[],
-      price_range: [0, 1000] as [number, number],
-      interests: [] as string[],
-    }
+    // Calculate preferences
+    const categories = products?.reduce((acc, p) => {
+      if (!acc[p.category]) acc[p.category] = 0;
+      acc[p.category]++;
+      return acc;
+    }, {} as Record<string, number>) ?? {};
 
-    if (products) {
-      // Analyze categories and materials
-      const categoryCount: Record<string, number> = {}
-      const materialCount: Record<string, number> = {}
-      let totalPrice = 0
+    const materials = products?.reduce((acc, p) => {
+      if (!acc[p.material]) acc[p.material] = 0;
+      acc[p.material]++;
+      return acc;
+    }, {} as Record<string, number>) ?? {};
 
-      products.forEach(product => {
-        if (product.category) {
-          categoryCount[product.category] = (categoryCount[product.category] || 0) + 1
-        }
-        if (product.material) {
-          materialCount[product.material] = (materialCount[product.material] || 0) + 1
-        }
-        if (product.unit_price) {
-          totalPrice += Number(product.unit_price)
-        }
-        if (product.keywords) {
-          preferences.interests.push(...product.keywords)
-        }
-      })
+    // Get top categories and materials
+    const topCategories = Object.entries(categories)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([cat]) => cat);
 
-      // Get top categories and materials
-      preferences.categories = Object.entries(categoryCount)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 3)
-        .map(([category]) => category)
+    const topMaterials = Object.entries(materials)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 2)
+      .map(([mat]) => mat);
 
-      preferences.materials = Object.entries(materialCount)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 3)
-        .map(([material]) => material)
-
-      // Calculate price range
-      const avgPrice = totalPrice / products.length
-      preferences.price_range = [
-        Math.max(0, avgPrice * 0.5),
-        avgPrice * 1.5
-      ]
-
-      // Clean and deduplicate interests
-      preferences.interests = [...new Set(preferences.interests)].slice(0, 10)
-    }
+    // Calculate price range
+    const prices = products?.map(p => Number(p.unit_price)) ?? [];
+    const minPrice = Math.min(...prices, 0);
+    const maxPrice = Math.max(...prices, 1000);
 
     // Generate simple ML features (placeholder)
-    const ml_features = [
-      preferences.categories.length,
-      preferences.materials.length,
-      preferences.price_range[1] - preferences.price_range[0],
-      preferences.interests.length,
-    ]
+    const mlFeatures = [
+      Math.random(),
+      Math.random(),
+      Math.random(),
+      Math.random(),
+      Math.random(),
+    ];
 
-    // Generate recommendations
-    const recommendations = {
-      categories: preferences.categories,
-      products: preferences.interests,
-      explanation: `Based on your interaction history, we recommend products in ${preferences.categories.join(', ')} categories, made from ${preferences.materials.join(', ')}.`
-    }
+    const response = {
+      preferences: {
+        categories: topCategories,
+        materials: topMaterials,
+        price_range: [minPrice, maxPrice],
+        interests: ['personalized'],
+      },
+      ml_features: mlFeatures,
+      recommendations: {
+        categories: topCategories,
+        products: productIds,
+        explanation: 'Recomendaciones basadas en tus interacciones previas',
+      },
+    };
 
     // Update user profile
     await supabaseClient
       .from('user_profiles')
       .upsert({
         user_id: userId,
-        preferences,
-        ml_features,
-        last_updated: new Date().toISOString()
-      })
+        preferences: response.preferences,
+        ml_features: response.ml_features,
+        last_updated: new Date().toISOString(),
+      });
 
-    return new Response(
-      JSON.stringify({
-        preferences,
-        ml_features,
-        recommendations
-      }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 200,
-      }
-    )
+    return new Response(JSON.stringify(response), {
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json',
+      },
+    });
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
+        status: 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
         },
-        status: 500,
       }
-    )
+    );
   }
-})
+});
