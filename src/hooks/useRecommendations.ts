@@ -2,58 +2,79 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Product } from '../types/product';
 
-export function useRecommendations() {
+interface RecommendationResponse {
+  products: Product[];
+  hasMore: boolean;
+  preferences?: {
+    categories: Record<string, number>;
+    materials: Record<string, number>;
+    price_range: {
+      min: number;
+      max: number;
+      avg: number;
+    };
+    interaction_patterns: {
+      total_interactions: number;
+      unique_products: number;
+      last_interaction: string;
+    };
+  };
+}
+
+export function useRecommendations(limit: number = 10) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [offset, setOffset] = useState(0);
+
+  const loadRecommendations = async (reset: boolean = false) => {
+    try {
+      setLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      const currentOffset = reset ? 0 : offset;
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recommend-products?` +
+        new URLSearchParams({
+          userId: user?.id || '',
+          limit: limit.toString(),
+          offset: currentOffset.toString(),
+        }),
+        {
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Error al cargar recomendaciones');
+      }
+
+      const data: RecommendationResponse = await response.json();
+      
+      setProducts(prev => reset ? data.products : [...prev, ...data.products]);
+      setHasMore(data.hasMore);
+      setOffset(currentOffset + limit);
+    } catch (err) {
+      console.error('Error loading recommendations:', err);
+      setError(err instanceof Error ? err.message : 'Error al cargar recomendaciones');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const loadRecommendations = async () => {
-      try {
-        setLoading(true);
-        
-        // Get most interacted products using a raw query with group by
-        const { data: interactions } = await supabase
-          .rpc('get_popular_products', { limit_count: 8 });
-
-        if (interactions?.length) {
-          const productIds = interactions.map(i => i.product_id);
-          
-          const { data: recommendedProducts } = await supabase
-            .from('products')
-            .select('*')
-            .in('id', productIds)
-            .limit(8);
-
-          if (recommendedProducts) {
-            setProducts(recommendedProducts);
-          }
-        } else {
-          // If no interactions, show recent products
-          const { data: recentProducts } = await supabase
-            .from('products')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(8);
-
-          if (recentProducts) {
-            setProducts(recentProducts);
-          }
-        }
-      } catch (err) {
-        console.error('Error loading recommendations:', err);
-        setError(err instanceof Error ? err.message : 'Error al cargar recomendaciones');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadRecommendations();
+    loadRecommendations(true);
   }, []);
 
   return {
     products,
     loading,
-    error
+    error,
+    hasMore,
+    loadMore: () => loadRecommendations(false),
   };
 }
