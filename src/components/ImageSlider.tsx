@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Thumbs } from 'swiper/modules';
+import type { Swiper as SwiperType } from 'swiper';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/thumbs';
@@ -11,16 +12,16 @@ interface ImageSliderProps {
 }
 
 const ImageSlider = ({ images, onImageClick }: ImageSliderProps) => {
-  const [thumbsSwiper, setThumbsSwiper] = useState(null);
+  const [thumbsSwiper, setThumbsSwiper] = useState<SwiperType | null>(null);
 
-  if (!images.length) return null;
+  if (!images?.length) return null;
 
   return (
     <div className="space-y-2">
       <Swiper
         modules={[Navigation, Thumbs]}
         navigation
-        {...(thumbsSwiper ? { thumbs: { swiper: thumbsSwiper } } : {})}
+        thumbs={{ swiper: thumbsSwiper && !thumbsSwiper.destroyed ? thumbsSwiper : null }}
         className="rounded-lg overflow-hidden aspect-square"
       >
         {images.map((image, index) => (
