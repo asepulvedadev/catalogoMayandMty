@@ -20,6 +20,15 @@ export type ProductCategory =
 
 export type Material = 'mdf' | 'acrilico' | 'pvc' | 'coroplax' | 'acetato' | 'carton' | 'tela';
 
+export type ProductView = 'front' | 'left' | 'right' | 'perspective';
+
+export interface ProductImages {
+  front?: string;
+  left?: string;
+  right?: string;
+  perspective?: string;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -31,6 +40,7 @@ export interface Product {
   bulk_price: number;
   image_url: string | null;
   images: string[];
+  product_views: ProductImages;
   created_at: string;
   updated_at: string;
   category: string;
@@ -48,6 +58,7 @@ export interface ProductFormState {
   bulk_price: number;
   image_url: string | null;
   images: string[];
+  product_views: ProductImages;
   category: string;
   keywords: string[];
 }

@@ -2,13 +2,20 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { uploadImage, deleteImage } from '../utils/imageUpload';
-import type { Product, ProductFormState, Material, ProductCategory } from '../types/product';
+import type { Product, ProductFormState, Material, ProductCategory, ProductView } from '../types/product';
 import ErrorMessage from '../components/ErrorMessage';
 import SuccessMessage from '../components/SuccessMessage';
 
 const PRODUCTS_PER_PAGE = 12;
 
 const materials: Material[] = ['mdf', 'acrilico', 'pvc', 'coroplax', 'acetato', 'carton', 'tela'];
+
+const productViews: { value: ProductView; label: string }[] = [
+  { value: 'front', label: 'Vista Frontal' },
+  { value: 'left', label: 'Lateral Izquierdo' },
+  { value: 'right', label: 'Lateral Derecho' },
+  { value: 'perspective', label: 'Perspectiva' }
+];
 
 const categories: { value: ProductCategory; label: string }[] = [
   { value: 'office_supplies', label: 'Art. de oficina/Papelería' },
@@ -38,6 +45,7 @@ const Dashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedView, setSelectedView] = useState<ProductView>('front');
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +61,8 @@ const Dashboard = () => {
     image_url: null,
     category: 'office_supplies',
     keywords: [],
-    images: []
+    images: [],
+    product_views: {}
   });
 
   useEffect(() => {
@@ -98,6 +107,10 @@ const Dashboard = () => {
         setCurrentProduct(prev => ({
           ...prev,
           images: [...prev.images, imageUrl],
+          product_views: {
+            ...prev.product_views,
+            [selectedView]: imageUrl
+          },
           image_url: prev.image_url || imageUrl
         }));
       }
@@ -113,9 +126,19 @@ const Dashboard = () => {
       if (await deleteImage(imageUrl)) {
         setCurrentProduct(prev => {
           const newImages = prev.images.filter(img => img !== imageUrl);
+          const newProductViews = { ...prev.product_views };
+          
+          // Eliminar la imagen de las vistas si está siendo usada
+          Object.keys(newProductViews).forEach(key => {
+            if (newProductViews[key as ProductView] === imageUrl) {
+              delete newProductViews[key as ProductView];
+            }
+          });
+
           return {
             ...prev,
             images: newImages,
+            product_views: newProductViews,
             image_url: imageUrl === prev.image_url ? newImages[0] || null : prev.image_url
           };
         });
@@ -123,6 +146,17 @@ const Dashboard = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al eliminar la imagen');
     }
+  };
+
+  const handleSetImageView = (imageUrl: string, view: ProductView) => {
+    setCurrentProduct(prev => ({
+      ...prev,
+      product_views: {
+        ...prev.product_views,
+        [view]: imageUrl
+      },
+      image_url: view === 'front' ? imageUrl : prev.image_url
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,7 +204,8 @@ const Dashboard = () => {
         image_url: null,
         category: 'office_supplies',
         keywords: [],
-        images: []
+        images: [],
+        product_views: {}
       });
       setPage(0);
       loadProducts();
@@ -193,7 +228,8 @@ const Dashboard = () => {
       image_url: product.image_url,
       category: product.category,
       keywords: product.keywords || [],
-      images: product.images || []
+      images: product.images || [],
+      product_views: product.product_views || {}
     });
   };
 
@@ -224,16 +260,6 @@ const Dashboard = () => {
   const handleKeywordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k !== '');
     setCurrentProduct(prev => ({ ...prev, keywords }));
-  };
-
-  const handleSetImageView = (imageUrl: string, view: 'card' | 'slider' | 'thumbnail') => {
-    setCurrentProduct(prev => {
-      if (view === 'card') {
-        return { ...prev, image_url: imageUrl };
-      }
-      // Aquí puedes agregar más lógica para otras vistas cuando sea necesario
-      return prev;
-    });
   };
 
   if (loading && products.length === 0) {
@@ -389,8 +415,18 @@ const Dashboard = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Imágenes ({currentProduct.images.length}/4)
+                  Vista a subir
                 </label>
+                <select
+                  value={selectedView}
+                  onChange={(e) => setSelectedView(e.target.value as ProductView)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm mb-4"
+                >
+                  {productViews.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -409,36 +445,69 @@ const Dashboard = () => {
                     Subiendo imagen...
                   </div>
                 )}
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {currentProduct.images.map((imageUrl, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={imageUrl}
-                        alt={`Imagen del producto ${index + 1}`}
-                        className={`h-32 w-full object-cover rounded ${imageUrl === currentProduct.image_url ? 'ring-2 ring-primary' : ''}`}
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded flex flex-col items-center justify-center space-y-2">
-                        <div className="flex space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => handleSetImageView(imageUrl, 'card')}
-                            className={`p-1 rounded ${imageUrl === currentProduct.image_url ? 'bg-primary text-white' : 'bg-white text-gray-800'} hover:bg-primary hover:text-white`}
-                            title="Usar como imagen principal"
+
+                <div className="mt-4 grid grid-cols-2 gap-4">
+                  {productViews.map(({ value, label }) => (
+                    <div key={value} className="bg-gray-50 p-4 rounded-lg">
+                      <h3 className="font-medium text-gray-700 mb-2">{label}</h3>
+                      {currentProduct.product_views[value] ? (
+                        <div className="relative group">
+                          <img
+                            src={currentProduct.product_views[value]}
+                            alt={`Vista ${label}`}
+                            className="h-32 w-full object-cover rounded"
+                          />
+                          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded flex items-center justify-center">
+                            <button
+                              type="button"
+                              onClick={() => handleImageDelete(currentProduct.product_views[value]!)}
+                              className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-32 bg-gray-200 rounded flex items-center justify-center text-gray-400">
+                          Sin imagen
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4">
+                  <h3 className="font-medium text-gray-700 mb-2">Todas las imágenes</h3>
+                  <div className="grid grid-cols-4 gap-4">
+                    {currentProduct.images.map((imageUrl, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={imageUrl}
+                          alt={`Imagen ${index + 1}`}
+                          className="h-24 w-full object-cover rounded"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded flex flex-col items-center justify-center space-y-2">
+                          <select
+                            value={Object.entries(currentProduct.product_views).find(([, url]) => url === imageUrl)?.[0] || ''}
+                            onChange={(e) => handleSetImageView(imageUrl, e.target.value as ProductView)}
+                            className="text-sm bg-white rounded px-2 py-1"
                           >
-                            Principal
-                          </button>
+                            <option value="">Seleccionar vista</option>
+                            {productViews.map(({ value, label }) => (
+                              <option key={value} value={value}>{label}</option>
+                            ))}
+                          </select>
                           <button
                             type="button"
                             onClick={() => handleImageDelete(imageUrl)}
-                            className="bg-red-500 text-white p-1 rounded hover:bg-red-600"
-                            title="Eliminar imagen"
+                            className="bg-red-500 text-white px-2 py-1 text-sm rounded hover:bg-red-600"
                           >
                             Eliminar
                           </button>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -459,7 +528,8 @@ const Dashboard = () => {
                         image_url: null,
                         category: 'office_supplies',
                         keywords: [],
-                        images: []
+                        images: [],
+                        product_views: {}
                       });
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
