@@ -20,7 +20,7 @@ const ImageSlider = ({ images, onImageClick }: ImageSliderProps) => {
       <Swiper
         modules={[Navigation, Thumbs]}
         navigation
-        thumbs={{ swiper: thumbsSwiper }}
+        {...(thumbsSwiper ? { thumbs: { swiper: thumbsSwiper } } : {})}
         className="rounded-lg overflow-hidden aspect-square"
       >
         {images.map((image, index) => (
