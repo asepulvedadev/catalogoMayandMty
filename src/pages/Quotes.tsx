@@ -6,6 +6,7 @@ import type { Quote, QuoteItem, Customer } from '../types/customer';
 import type { Product } from '../types/product';
 import ErrorMessage from '../components/ErrorMessage';
 import SuccessMessage from '../components/SuccessMessage';
+import { generateQuotePDF } from '../utils/pdfGenerator';
 
 export default function Quotes() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -444,6 +445,29 @@ export default function Quotes() {
                           >
                             Eliminar
                           </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const { data: items } = await supabase
+                                  .from('quote_items')
+                                  .select(`
+                                    *,
+                                    product:products(*)
+                                  `)
+                                  .eq('quote_id', quote.id);
+
+                                if (items) {
+                                  const doc = generateQuotePDF(quote, items);
+                                  doc.save(`cotizacion-${quote.quote_number}.pdf`);
+                                }
+                              } catch (err) {
+                                setError('Error al generar el PDF');
+                              }
+                            }}
+                            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                          >
+                            PDF
+                          </button>
                         </div>
                       </div>
                       <div className="mt-2 sm:flex sm:justify-between">
@@ -470,3 +494,5 @@ export default function Quotes() {
     </div>
   );
 }
+
+export default Quotes
