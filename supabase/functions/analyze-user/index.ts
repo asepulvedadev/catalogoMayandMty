@@ -7,7 +7,28 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
+// Initialize clients outside request handler
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const openaiKey = Deno.env.get('OPENAI_API_KEY');
+
+// Validate environment variables
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase environment variables');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Only initialize OpenAI if key is present
+let openai: OpenAIApi | null = null;
+if (openaiKey) {
+  openai = new OpenAIApi(new Configuration({
+    apiKey: openaiKey,
+  }));
+}
+
 Deno.serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,18 +36,12 @@ Deno.serve(async (req) => {
   try {
     const { userId } = await req.json();
 
-    // Inicializar clientes
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    if (!userId) {
+      throw new Error('User ID is required');
+    }
 
-    const openai = new OpenAIApi(new Configuration({
-      apiKey: Deno.env.get('OPENAI_API_KEY'),
-    }));
-
-    // Obtener interacciones del usuario
-    const { data: interactions } = await supabase
+    // Get user interactions
+    const { data: interactions, error: interactionsError } = await supabase
       .from('user_interactions')
       .select(`
         *,
@@ -43,11 +58,44 @@ Deno.serve(async (req) => {
       .order('timestamp', { ascending: false })
       .limit(100);
 
+    if (interactionsError) {
+      throw new Error(`Failed to fetch interactions: ${interactionsError.message}`);
+    }
+
     if (!interactions?.length) {
       throw new Error('No hay suficientes interacciones para analizar');
     }
 
-    // Preparar datos para OpenAI
+    // If OpenAI is not configured, return basic analysis
+    if (!openai) {
+      const basicAnalysis = {
+        preferences: {
+          categories: [],
+          materials: [],
+          price_range: [0, 0],
+          interests: []
+        },
+        ml_features: Array(10).fill(0.5),
+        recommendations: {
+          categories: [],
+          products: [],
+          explanation: "Análisis no disponible - OpenAI no está configurado"
+        }
+      };
+
+      await supabase.from('user_profiles').upsert({
+        user_id: userId,
+        preferences: basicAnalysis.preferences,
+        ml_features: basicAnalysis.ml_features,
+        last_updated: new Date().toISOString(),
+      });
+
+      return new Response(JSON.stringify(basicAnalysis), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Prepare data for OpenAI
     const userBehavior = interactions.map(i => ({
       action: i.action,
       duration: i.duration_seconds,
@@ -55,7 +103,7 @@ Deno.serve(async (req) => {
       timestamp: i.timestamp,
     }));
 
-    // Prompt para OpenAI
+    // OpenAI prompt
     const prompt = `
     Analiza el comportamiento de este usuario basado en sus ${interactions.length} interacciones:
     ${JSON.stringify(userBehavior, null, 2)}
@@ -83,7 +131,7 @@ Deno.serve(async (req) => {
     4. Los ml_features representen: precio (2), tamaño (2), complejidad (2), estilo (2), uso (2)
     `;
 
-    // Llamar a OpenAI
+    // Call OpenAI
     const completion = await openai.createChatCompletion({
       model: 'gpt-4',
       messages: [{ role: 'user', content: prompt }],
@@ -93,28 +141,32 @@ Deno.serve(async (req) => {
 
     const analysis = JSON.parse(completion.data.choices[0].message.content);
 
-    // Actualizar perfil del usuario
-    await supabase.from('user_profiles').upsert({
+    // Update user profile
+    const { error: updateError } = await supabase.from('user_profiles').upsert({
       user_id: userId,
       preferences: analysis.preferences,
       ml_features: analysis.ml_features,
       last_updated: new Date().toISOString(),
     });
 
+    if (updateError) {
+      throw new Error(`Failed to update user profile: ${updateError.message}`);
+    }
+
     return new Response(JSON.stringify(analysis), {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (error) {
     console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        details: error.toString()
+      }), 
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
 });
