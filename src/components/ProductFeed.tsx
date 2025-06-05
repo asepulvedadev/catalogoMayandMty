@@ -81,6 +81,12 @@ const ProductFeed = ({ products, loading, onProductClick, onLoadMore, hasMore }:
               alt="Mayand Logo"
               className="absolute top-2 left-2 h-8 w-auto z-10 opacity-60"
             />
+            <button 
+              onClick={() => onProductClick(product)}
+              className="absolute top-2 right-2 bg-primary text-white p-2 rounded-full hover:bg-primary-700 transition-colors duration-300 transform hover:scale-110 z-10"
+            >
+              <PlusIcon className="h-5 w-5" />
+            </button>
           </div>
           <div className="p-4 bg-gradient-to-b from-white to-gray-50">
             <h3 className="text-lg font-semibold mb-2 text-gray-800">{product.name}</h3>
@@ -91,13 +97,6 @@ const ProductFeed = ({ products, loading, onProductClick, onLoadMore, hasMore }:
                 {product.width}x{product.height}cm
               </span>
             </div>
-            <button
-              onClick={() => onProductClick(product)}
-              className="mt-4 w-full bg-primary hover:bg-primary-700 text-white rounded-md py-2 px-4 flex items-center justify-center gap-2 transition-colors duration-300"
-            >
-              <PlusIcon className="h-5 w-5" />
-              <span>Ver detalles</span>
-            </button>
           </div>
         </div>
       ))}
