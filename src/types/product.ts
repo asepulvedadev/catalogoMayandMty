@@ -33,8 +33,9 @@ export interface Product {
   id: string;
   name: string;
   description: string | null;
-  material: string;
+  material: Material;
   width: number;
+  length: number;
   height: number;
   unit_price: number;
   bulk_price: number;
@@ -43,22 +44,12 @@ export interface Product {
   product_views: ProductImages;
   created_at: string;
   updated_at: string;
-  category: string;
+  category: ProductCategory;
   keywords: string[];
+  sku: string;
+  qr_code: string;
 }
 
-export interface ProductFormState {
+export interface ProductFormState extends Omit<Product, 'id' | 'created_at' | 'updated_at'> {
   id?: string;
-  name: string;
-  description: string | null;
-  material: string;
-  width: number;
-  height: number;
-  unit_price: number;
-  bulk_price: number;
-  image_url: string | null;
-  images: string[];
-  product_views: ProductImages;
-  category: string;
-  keywords: string[];
 }

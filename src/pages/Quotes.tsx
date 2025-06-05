@@ -7,6 +7,7 @@ import type { Product } from '../types/product';
 import ErrorMessage from '../components/ErrorMessage';
 import SuccessMessage from '../components/SuccessMessage';
 import { generateQuotePDF } from '../utils/pdfGenerator';
+import { XMarkIcon, PlusIcon, TrashIcon, PencilIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
 
 export default function Quotes() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -120,11 +121,26 @@ export default function Quotes() {
         throw new Error('Debe agregar al menos un producto');
       }
 
+      // Calcular totales
+      const subtotal = quoteItems.reduce((sum, item) => sum + (item.total_price || 0), 0);
+      const tax_rate = 0.16; // 16% IVA
+      const tax_amount = subtotal * tax_rate;
+      const total_amount = subtotal + tax_amount;
+
+      const quoteData = {
+        ...currentQuote,
+        subtotal,
+        tax_rate,
+        tax_amount,
+        total_amount,
+        created_by: (await supabase.auth.getUser()).data.user?.id
+      };
+
       if (isEditing && currentQuote.id) {
         // Actualizar cotización
         const { error: updateError } = await supabase
           .from('quotes')
-          .update(currentQuote)
+          .update(quoteData)
           .eq('id', currentQuote.id);
 
         if (updateError) throw updateError;
@@ -152,7 +168,7 @@ export default function Quotes() {
         // Crear nueva cotización
         const { data: quote, error: insertError } = await supabase
           .from('quotes')
-          .insert([currentQuote])
+          .insert([quoteData])
           .select()
           .single();
 
@@ -174,6 +190,7 @@ export default function Quotes() {
       resetForm();
       loadQuotes();
     } catch (err) {
+      console.error('Error al guardar la cotización:', err);
       setError(err instanceof Error ? err.message : 'Error al guardar la cotización');
     }
   };
@@ -357,7 +374,7 @@ export default function Quotes() {
                         onClick={() => removeQuoteItem(index)}
                         className="text-red-600 hover:text-red-800"
                       >
-                        Eliminar
+                        <TrashIcon className="h-5 w-5" />
                       </button>
                     </div>
                   ))}
@@ -366,6 +383,7 @@ export default function Quotes() {
                     onClick={addQuoteItem}
                     className="mt-2 inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-full shadow-sm text-white bg-primary hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
                   >
+                    <PlusIcon className="h-4 w-4 mr-1" />
                     Agregar Producto
                   </button>
                 </div>
@@ -435,14 +453,16 @@ export default function Quotes() {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => handleEdit(quote)}
-                            className="px-3 py-1 bg-primary text-white rounded hover:bg-primary-700 transition-colors"
+                            className="px-3 py-1 bg-primary text-white rounded hover:bg-primary-700 transition-colors inline-flex items-center"
                           >
+                            <PencilIcon className="h-4 w-4 mr-1" />
                             Editar
                           </button>
                           <button
                             onClick={() => handleDelete(quote.id)}
-                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors inline-flex items-center"
                           >
+                            <TrashIcon className="h-4 w-4 mr-1" />
                             Eliminar
                           </button>
                           <button
@@ -464,8 +484,9 @@ export default function Quotes() {
                                 setError('Error al generar el PDF');
                               }
                             }}
-                            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition-colors inline-flex items-center"
                           >
+                            <DocumentArrowDownIcon className="h-4 w-4 mr-1" />
                             PDF
                           </button>
                         </div>

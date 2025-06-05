@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { uploadImage, deleteImage } from '../utils/imageUpload';
+import { getSuggestedTags } from '../utils/tagsDictionary';
 import type { Product, ProductFormState, Material, ProductCategory, ProductView } from '../types/product';
 import ErrorMessage from '../components/ErrorMessage';
 import SuccessMessage from '../components/SuccessMessage';
@@ -9,6 +10,86 @@ import SuccessMessage from '../components/SuccessMessage';
 const PRODUCTS_PER_PAGE = 12;
 
 const materials: Material[] = ['mdf', 'acrilico', 'pvc', 'coroplax', 'acetato', 'carton', 'tela'];
+
+const commonTags = [
+  // Materiales
+  'mdf', 'acrílico', 'pvc', 'coroplast', 'acetato', 'cartón', 'tela', 'madera', 'triplay', 'contrachapado',
+  'melamina', 'policarbonato', 'poliestireno', 'espuma', 'cuero', 'fieltro', 'papel', 'fibra', 'composite',
+  
+  // Técnicas de corte y grabado
+  'corte láser', 'grabado', 'ensamblado', 'montaje', 'pegado', 'biselado', 'ranurado', 'engranado',
+  'encajado', 'doblado', 'calado', 'perforado', 'tallado', 'marcado', 'quemado', 'pirograbado',
+  'grabado vectorial', 'corte vectorial', 'corte por capas', 'grabado profundo', 'grabado superficial',
+  
+  // Características
+  'personalizable', 'montable', 'desmontable', 'plegable', 'apilable', 'intercambiable', 'ajustable',
+  'modular', 'portátil', 'reversible', 'multiuso', 'transformable', 'adaptable', 'configurable',
+  
+  // Usos y aplicaciones
+  'decorativo', 'funcional', 'educativo', 'publicitario', 'exhibición', 'organizador', 'almacenamiento',
+  'presentación', 'señalización', 'identificación', 'información', 'orientación', 'promoción',
+  
+  // Tamaños y dimensiones
+  'pequeño', 'mediano', 'grande', 'extra grande', 'mini', 'micro', 'gigante', 'compacto', 'espacioso',
+  
+  // Estilos y diseños
+  'minimalista', 'moderno', 'clásico', 'vintage', 'contemporáneo', 'industrial', 'rústico', 'elegante',
+  'sofisticado', 'artístico', 'creativo', 'innovador', 'tradicional', 'étnico', 'bohemio', 'retro',
+  
+  // Aplicaciones específicas
+  'hogar', 'oficina', 'escuela', 'eventos', 'exhibiciones', 'comercio', 'restaurante', 'hotel',
+  'museo', 'galería', 'teatro', 'cine', 'biblioteca', 'hospital', 'clínica', 'gimnasio',
+  
+  // Especificaciones técnicas
+  'resistente', 'ligero', 'durable', 'reutilizable', 'reciclable', 'biodegradable', 'sostenible',
+  'ecológico', 'antialérgico', 'antibacterial', 'ignífugo', 'impermeable', 'resistente al agua',
+  
+  // Categorías de productos
+  'portarretratos', 'exhibidores', 'letras', 'números', 'figuras', 'marcos', 'repisas', 'estantes',
+  'rompecabezas', 'muebles', 'lámparas', 'relojes', 'cajas', 'organizadores', 'separadores',
+  'soportes', 'stands', 'vitrinas', 'mostradores', 'biombos', 'divisores', 'paneles',
+  
+  // Artesanías y decoraciones
+  'artesanía', 'manualidad', 'decoración', 'ornamento', 'adorno', 'centro de mesa', 'móvil',
+  'colgante', 'escultura', 'relieve', 'bajorrelieve', 'talla', 'tallado', 'grabado artístico',
+  'diseño artístico', 'arte decorativo', 'arte funcional', 'arte utilitario',
+  
+  // Elementos decorativos
+  'flor', 'hoja', 'árbol', 'animal', 'pájaro', 'mariposa', 'insecto', 'marino', 'geometría',
+  'patrón', 'textura', 'motivo', 'símbolo', 'emblema', 'logo', 'marca', 'firma',
+  
+  // Técnicas artísticas
+  'calado artístico', 'grabado artístico', 'tallado artístico', 'pirograbado artístico',
+  'quemado artístico', 'marcado artístico', 'diseño artístico', 'arte digital',
+  
+  // Características especiales
+  'iluminado', 'interactivo', 'modular', 'ajustable', 'portátil', 'plegable', 'desmontable',
+  'transformable', 'multifuncional', 'versátil', 'adaptable', 'personalizable',
+  
+  // Técnicas de acabado
+  'pulido', 'lijado', 'barnizado', 'lacado', 'pintado', 'teñido', 'estofado', 'dorado',
+  'plateado', 'cromado', 'mate', 'brillante', 'texturizado', 'grabado profundo',
+  
+  // Materiales adicionales
+  'madera natural', 'madera tratada', 'madera reciclada', 'madera certificada',
+  'plástico reciclado', 'materiales reciclados', 'materiales ecológicos',
+  
+  // Usos específicos
+  'organizador', 'almacenamiento', 'presentación', 'decoración', 'señalización',
+  'identificación', 'información', 'orientación', 'promoción', 'publicidad',
+  
+  // Categorías de diseño
+  'diseño industrial', 'diseño gráfico', 'diseño arquitectónico', 'diseño de interiores',
+  'diseño de producto', 'diseño de mobiliario', 'diseño de iluminación',
+  
+  // Elementos estructurales
+  'estructura', 'soporte', 'base', 'marco', 'borde', 'contorno', 'perfil', 'silueta',
+  'forma', 'figura', 'composición', 'ensamblaje', 'unión', 'conexión',
+  
+  // Características de diseño
+  'simétrico', 'asimétrico', 'balanceado', 'armónico', 'proporcionado', 'equilibrado',
+  'dinámico', 'estático', 'fluido', 'rígido', 'flexible', 'adaptable'
+];
 
 const productViews: { value: ProductView; label: string }[] = [
   { value: 'front', label: 'Vista Frontal' },
@@ -55,6 +136,7 @@ const Dashboard = () => {
     description: null,
     material: 'mdf',
     width: 0,
+    length: 0,
     height: 0,
     unit_price: 0,
     bulk_price: 0,
@@ -64,6 +146,8 @@ const Dashboard = () => {
     images: [],
     product_views: {}
   });
+  const [suggestedTags, setSuggestedTags] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
     loadProducts();
@@ -198,6 +282,7 @@ const Dashboard = () => {
         description: null,
         material: 'mdf',
         width: 0,
+        length: 0,
         height: 0,
         unit_price: 0,
         bulk_price: 0,
@@ -222,6 +307,7 @@ const Dashboard = () => {
       description: product.description,
       material: product.material,
       width: product.width,
+      length: product.length,
       height: product.height,
       unit_price: product.unit_price,
       bulk_price: product.bulk_price,
@@ -258,8 +344,37 @@ const Dashboard = () => {
   };
 
   const handleKeywordsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const keywords = e.target.value.split(',').map(k => k.trim()).filter(k => k !== '');
-    setCurrentProduct(prev => ({ ...prev, keywords }));
+    const value = e.target.value;
+    setInputValue(value);
+    
+    // Usar la función getSuggestedTags del diccionario
+    const matchingTags = getSuggestedTags(value, currentProduct.keywords);
+    
+    // Si hay coincidencias y el usuario está escribiendo, mostrar sugerencias
+    if (matchingTags.length > 0 && value.length > 0) {
+      setSuggestedTags(matchingTags);
+    } else {
+      setSuggestedTags([]);
+    }
+  };
+
+  const addSuggestedTag = (tag: string) => {
+    // Verificar si ya alcanzamos el límite de 6 etiquetas
+    if (currentProduct.keywords.length >= 6) {
+      setError('Máximo 6 etiquetas por producto');
+      return;
+    }
+
+    // Verificar si la etiqueta ya existe
+    if (currentProduct.keywords.includes(tag)) {
+      setError('Esta etiqueta ya está agregada');
+      return;
+    }
+
+    const newKeywords = [...currentProduct.keywords, tag];
+    setCurrentProduct(prev => ({ ...prev, keywords: newKeywords }));
+    setSuggestedTags([]);
+    setInputValue(''); // Limpiar el input
   };
 
   if (loading && products.length === 0) {
@@ -335,14 +450,51 @@ const Dashboard = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Etiquetas</label>
-                <input
-                  type="text"
-                  value={currentProduct.keywords.join(', ')}
-                  onChange={handleKeywordsChange}
-                  placeholder="Ingrese etiquetas separadas por comas"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                />
+                <label className="block text-sm font-medium text-gray-700">Etiquetas ({currentProduct.keywords.length}/6)</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={inputValue}
+                    onChange={handleKeywordsChange}
+                    placeholder="Ingrese etiquetas separadas por comas"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                    disabled={currentProduct.keywords.length >= 6}
+                  />
+                  {suggestedTags.length > 0 && (
+                    <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-200">
+                      {suggestedTags.map((tag, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => addSuggestedTag(tag)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 focus:outline-none"
+                        >
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {currentProduct.keywords.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+                    >
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newKeywords = currentProduct.keywords.filter((_, i) => i !== index);
+                          setCurrentProduct(prev => ({ ...prev, keywords: newKeywords }));
+                        }}
+                        className="ml-1 text-primary-600 hover:text-primary-800"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -361,7 +513,7 @@ const Dashboard = () => {
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Ancho (cm)</label>
                   <input
@@ -375,13 +527,24 @@ const Dashboard = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-gray-700">Largo (cm)</label>
+                  <input
+                    type="number"
+                    value={currentProduct.length}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, length: parseFloat(e.target.value) })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                    required
+                    step="0.1"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-gray-700">Alto (cm)</label>
                   <input
                     type="number"
                     value={currentProduct.height}
                     onChange={(e) => setCurrentProduct({ ...currentProduct, height: parseFloat(e.target.value) })}
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
-                    required
                     step="0.1"
                   />
                 </div>
@@ -522,6 +685,7 @@ const Dashboard = () => {
                         description: null,
                         material: 'mdf',
                         width: 0,
+                        length: 0,
                         height: 0,
                         unit_price: 0,
                         bulk_price: 0,

@@ -15,7 +15,15 @@ import logo from '../assets/logo_mayand.png';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Productos', href: '/dashboard/products', icon: ShoppingBagIcon },
+  { 
+    name: 'Productos', 
+    href: '/dashboard/products', 
+    icon: ShoppingBagIcon,
+    submenu: [
+      { name: 'Gestión de Productos', href: '/dashboard/products' },
+      { name: 'Listado Completo', href: '/dashboard/products/list' }
+    ]
+  },
   { name: 'Clientes', href: '/dashboard/customers', icon: UsersIcon },
   { name: 'Cotizaciones', href: '/dashboard/quotes', icon: DocumentTextIcon },
   { name: 'Ventas', href: '/dashboard/sales', icon: CurrencyDollarIcon },
@@ -32,6 +40,10 @@ export default function DashboardLayout() {
     navigate('/admin');
   };
 
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+
   const renderSidebarContent = () => (
     <nav className="flex flex-1 flex-col">
       <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -39,19 +51,53 @@ export default function DashboardLayout() {
           <ul role="list" className="-mx-2 space-y-1">
             {navigation.map((item) => (
               <li key={item.name}>
-                <Link
-                  to={item.href}
-                  className={`
-                    group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6
-                    ${location.pathname === item.href
-                      ? 'bg-primary-700 text-white'
-                      : 'text-gray-200 hover:bg-primary-700 hover:text-white'
-                    }
-                  `}
-                >
-                  <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
-                  {item.name}
-                </Link>
+                {item.submenu ? (
+                  <div className="space-y-1">
+                    <div
+                      className={`
+                        group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6
+                        ${isActive(item.href) || item.submenu.some(sub => isActive(sub.href))
+                          ? 'bg-primary-700 text-white'
+                          : 'text-gray-200 hover:bg-primary-700 hover:text-white'
+                        }
+                      `}
+                    >
+                      <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+                      {item.name}
+                    </div>
+                    <div className="ml-6 space-y-1">
+                      {item.submenu.map((subItem) => (
+                        <Link
+                          key={subItem.name}
+                          to={subItem.href}
+                          className={`
+                            block rounded-md px-2 py-2 text-sm leading-6
+                            ${isActive(subItem.href)
+                              ? 'bg-primary-600 text-white'
+                              : 'text-gray-200 hover:bg-primary-700 hover:text-white'
+                            }
+                          `}
+                        >
+                          {subItem.name}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <Link
+                    to={item.href}
+                    className={`
+                      group flex items-center gap-x-3 rounded-md p-2 text-sm leading-6
+                      ${isActive(item.href)
+                        ? 'bg-primary-700 text-white'
+                        : 'text-gray-200 hover:bg-primary-700 hover:text-white'
+                      }
+                    `}
+                  >
+                    <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+                    {item.name}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

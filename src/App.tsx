@@ -11,6 +11,17 @@ import DashboardLayout from './components/DashboardLayout';
 import Footer from './components/Footer';
 import { supabase } from './lib/supabase';
 import './App.css';
+import ProductList from './pages/ProductList';
+import Layout from './components/Layout';
+import ProductPage from './pages/ProductPage';
+
+// Configuración de React Router
+const router = {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true,
+  },
+};
 
 function AppContent() {
   const navigate = useNavigate();
@@ -43,11 +54,14 @@ function AppContent() {
           >
             <Route index element={<DashboardHome />} />
             <Route path="products" element={<Dashboard />} />
+            <Route path="products/list" element={<ProductList />} />
             <Route path="customers" element={<Customers />} />
             <Route path="quotes" element={<Quotes />} />
             <Route path="sales" element={<Navigate to="/dashboard" />} />
             <Route path="reports" element={<Navigate to="/dashboard" />} />
           </Route>
+          <Route path="/products" element={<ProductList />} />
+          <Route path="/product/:id" element={<ProductPage />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>
@@ -58,8 +72,10 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <AppContent />
+    <Router future={router.future}>
+      <Layout>
+        <AppContent />
+      </Layout>
     </Router>
   );
 }

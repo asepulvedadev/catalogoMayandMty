@@ -47,6 +47,91 @@ CREATE INDEX IF NOT EXISTS products_category_material_idx ON products(category, 
 CREATE INDEX IF NOT EXISTS products_unit_price_idx ON products(unit_price);
 CREATE INDEX IF NOT EXISTS products_bulk_price_idx ON products(bulk_price);
 
+-- Add SKU and QR code columns to products
+ALTER TABLE products
+ADD COLUMN IF NOT EXISTS sku text UNIQUE,
+ADD COLUMN IF NOT EXISTS qr_code text UNIQUE;
+
+-- Create index for SKU lookups
+CREATE INDEX IF NOT EXISTS products_sku_idx ON products(sku);
+
+-- Create index for QR code lookups
+CREATE INDEX IF NOT EXISTS products_qr_code_idx ON products(qr_code);
+
+-- Function to generate SKU
+CREATE OR REPLACE FUNCTION generate_sku(category product_category) 
+RETURNS text AS $$
+DECLARE
+  prefix text;
+  random_part text;
+  new_sku text;
+  exists boolean;
+BEGIN
+  -- Get prefix based on category
+  prefix := CASE category
+    WHEN 'office_supplies' THEN 'OF'
+    WHEN 'kitchen_items' THEN 'KT'
+    WHEN 'living_hinges' THEN 'LH'
+    WHEN 'houses_furniture' THEN 'HF'
+    WHEN 'displays' THEN 'DP'
+    WHEN 'geometric_shapes' THEN 'GS'
+    WHEN 'lamps_clocks' THEN 'LC'
+    WHEN 'letters_numbers' THEN 'LN'
+    WHEN 'mandalas_dreamcatchers' THEN 'MD'
+    WHEN 'maps' THEN 'MP'
+    WHEN 'masks' THEN 'MK'
+    WHEN 'nature' THEN 'NT'
+    WHEN 'christmas' THEN 'CH'
+    WHEN 'easter' THEN 'ES'
+    WHEN 'frames' THEN 'FR'
+    WHEN 'shelves' THEN 'SH'
+    WHEN 'puzzles' THEN 'PZ'
+    WHEN 'transportation' THEN 'TR'
+    ELSE 'PR'
+  END;
+
+  -- Generate random part and check for uniqueness
+  LOOP
+    random_part := upper(substring(md5(random()::text) from 1 for 6));
+    new_sku := prefix || '-' || random_part;
+    
+    SELECT EXISTS(SELECT 1 FROM products WHERE sku = new_sku) INTO exists;
+    EXIT WHEN NOT exists;
+  END LOOP;
+
+  RETURN new_sku;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function to generate QR code
+CREATE OR REPLACE FUNCTION generate_qr_code(sku text) 
+RETURNS text AS $$
+BEGIN
+  RETURN 'https://catalogomayand.com/products/' || sku;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger to automatically generate SKU and QR code
+CREATE OR REPLACE FUNCTION set_product_codes()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.sku IS NULL THEN
+    NEW.sku := generate_sku(NEW.category);
+  END IF;
+  
+  IF NEW.qr_code IS NULL THEN
+    NEW.qr_code := generate_qr_code(NEW.sku);
+  END IF;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_product_codes_trigger
+  BEFORE INSERT OR UPDATE ON products
+  FOR EACH ROW
+  EXECUTE FUNCTION set_product_codes();
+
 -- Create function for similarity search
 CREATE OR REPLACE FUNCTION search_products(
   search_query text,
@@ -81,7 +166,15 @@ BEGIN
       ts_rank(p.search_vector, to_tsquery('spanish_unaccent', regexp_replace(search_query, '\s+', ':* & ', 'g') || ':*')) as similarity
     FROM products p
     WHERE 
-      (search_query IS NULL OR p.search_vector @@ to_tsquery('spanish_unaccent', regexp_replace(search_query, '\s+', ':* & ', 'g') || ':*'))
+      (
+        search_query IS NULL 
+        OR p.search_vector @@ to_tsquery('spanish_unaccent', regexp_replace(search_query, '\s+', ':* & ', 'g') || ':*')
+        OR EXISTS (
+          SELECT 1 
+          FROM unnest(p.keywords) keyword 
+          WHERE keyword ILIKE '%' || search_query || '%'
+        )
+      )
       AND (category_filter IS NULL OR p.category = category_filter)
       AND (material_filter IS NULL OR p.material = material_filter)
       AND (min_price IS NULL OR p.unit_price >= min_price)
@@ -102,19 +195,12 @@ BEGIN
     sr.images,
     sr.similarity
   FROM search_results sr
-  ORDER BY
+  ORDER BY 
     CASE 
-      WHEN sort_by = 'relevance' AND sort_direction = 'desc' THEN sr.similarity END DESC,
-    CASE 
-      WHEN sort_by = 'relevance' AND sort_direction = 'asc' THEN sr.similarity END ASC,
-    CASE 
-      WHEN sort_by = 'price' AND sort_direction = 'desc' THEN sr.unit_price END DESC,
-    CASE 
-      WHEN sort_by = 'price' AND sort_direction = 'asc' THEN sr.unit_price END ASC,
-    CASE 
-      WHEN sort_by = 'name' AND sort_direction = 'desc' THEN sr.name END DESC,
-    CASE 
-      WHEN sort_by = 'name' AND sort_direction = 'asc' THEN sr.name END ASC
+      WHEN sort_by = 'price' AND sort_direction = 'asc' THEN sr.unit_price
+      WHEN sort_by = 'price' AND sort_direction = 'desc' THEN -sr.unit_price
+      ELSE -sr.similarity
+    END
   LIMIT p_limit
   OFFSET p_offset;
 END;
